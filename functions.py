@@ -1,10 +1,10 @@
 import typed_ast.ast3 as ast
 from collections import defaultdict
-from typing import Dict, Tuple
+from typing import Dict, Sequence
 from parsers.expressions import get_expression_type_and_code
 from itypes import InferredType
 
-TypeSig = Tuple[InferredType]
+TypeSig = Sequence[InferredType]
 
 class FunctionNotFound(ValueError):
     pass
@@ -14,10 +14,13 @@ class FunctionImplementation(ast.NodeVisitor):
         self.definition = ""
         self.body = ""
         self.retval = "void"
-        self.args = "char* argv[]"
+        self.scope = {}
+        self.args = []
+        for arg, arg_type in zip(node.args.args, type_sig):
+            self.scope[arg.arg] = arg_type
+            self.args += [arg_type.as_c_type() + " "+ arg.arg]
         self.indent = 2
         self.type_sig = type_sig
-        self.scope = {}
         self.funcs = funcs
         for n in node.body:
             self.visit(n)
@@ -62,7 +65,7 @@ class FuncDB(ast.NodeVisitor):
 
     def get_signature(self, name: str, typesig: TypeSig):
         func = self.get_func(name, typesig)
-        text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + func.args+")"
+        text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args)+")"
         return text
 
     def get_implementation(self, name: str, typesig: TypeSig):

@@ -1,4 +1,4 @@
-import ast
+import typed_ast.ast3 as ast
 import warnings
 
 import itypes, scopes, utils
@@ -130,21 +130,16 @@ class ExpressionParser(ast.NodeVisitor):
         return self.evaluate(node.body[0])
 
     def visit_IfExp(self, node):
-        types = itypes.TypeSet(self.evaluate(node.body)[0], self.evaluate(node.orelse)[0])
-        test, body, orelse = [self.evaluate(x)[1] for x in (node.test, node.body, node.orelse)]
-        code = "%s ? %s : %s" % (test, body, orelse)
-        return types, code
+        test, body, orelse = [self.evaluate(x) for x in (node.test, node.body, node.orelse)]
+        code = "%s ? %s : %s" % (test[1], body[1], orelse[1])
+        return itypes.combine_types(body[0], orelse[0]), code
 
     def visit_BinOp(self, node):
         op = type(node.op).__name__
-        result = itypes.TypeSet()
         left = self.evaluate(node.left)
         right = self.evaluate(node.right)
-        for l_type in left[0]:
-            for r_type in right[0]:
-                new_type = self.get_binary_op_type(l_type, r_type, op)
-                if new_type is not TypeError:
-                    result = new_type
+        print("BINOP:\nSCOPE:\n",self.scope,"\n", ast.dump(node))
+        result = self.get_binary_op_type(left[0], right[0], op)
         if op in self.OPS_MAP:
             op = self.OPS_MAP[op]
         else:
@@ -154,10 +149,10 @@ class ExpressionParser(ast.NodeVisitor):
 
     def get_binary_op_type(self, left, right, op):
         if self.both_args_numeric(left, right):
-            return self.get_highest_priority_number(left, right)
-        if self.both_args_strings(left, right):
-            return self.STR
-        if left == self.STR and right in self.NUMERIC_TYPES and op == "Mult":
+            return itypes.combine_types(left, right)
+        if left == self.STR and right == self.STR and op == "Add":
+            return left
+        if left == self.STR and right == self.INT and op == "Mult":
             return left
         if left == self.STR and op == "Mod":
             return left
@@ -168,12 +163,6 @@ class ExpressionParser(ast.NodeVisitor):
 
     def both_args_strings(self, left, right):
         return left == self.STR and right == self.STR
-
-    def get_highest_priority_number(self, left, right):
-        if self.FLOAT in (left, right):
-            return self.FLOAT
-        else:
-            return self.INT
 
     # def visit_UnaryOp(self, node):
     #     op = type(node.op).__name__

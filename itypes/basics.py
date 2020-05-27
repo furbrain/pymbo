@@ -2,7 +2,7 @@ import itertools
 import utils
 
 def is_inferred_type(node):
-    return isinstance(node, (InferredType, TypeSet))
+    return isinstance(node, InferredType)
 
 def get_type_name(obj):
     if isinstance(obj, type):
@@ -12,6 +12,15 @@ def get_type_name(obj):
             return 'None'
         else:
             return '<{}>'.format(type(obj).__name__)
+
+def combine_types(a: "InferredType", b: "InferredType"):
+    if a==b:
+        return a
+    if a == "<int>" and b == "<float>":
+        return b
+    if b == "<int>" and a == "<float>":
+        return a
+    return UnknownType()
 
 class InferredType():
     @classmethod
@@ -23,7 +32,7 @@ class InferredType():
 
     def __init__(self):
         self.attrs = {}
-        self.items = TypeSet()
+        self.items = None
         self.name = ""
         self.docstring = ""
 
@@ -38,8 +47,6 @@ class InferredType():
     def __eq__(self, other):
         if isinstance(other, InferredType):
             return str(self) == str(other)
-        elif isinstance(other, TypeSet) and len(other) == 1:
-            return self in other
         elif isinstance(other, str):
             return str(self) == other
         elif isinstance(other, type):

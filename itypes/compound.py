@@ -8,7 +8,7 @@ class BaseCompoundType(basics.InferredType):
     """This is the base class for other classes that can hold other objects"""
     def __init__(self):
         super().__init__()
-        self.items = basics.TypeSet()
+        self.items = None
 
     def get_item(self, index):
         return self.items
@@ -21,7 +21,7 @@ class BaseCompoundType(basics.InferredType):
 
     def add_item(self, item):
         assert(basics.is_inferred_type(item))
-        self.items = self.items.add_type(item)
+        self.items = item
 
     def get_star_expansion(self):
         return [self.items] * 4

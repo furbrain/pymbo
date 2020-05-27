@@ -2,6 +2,7 @@ import unittest
 import pymbo
 import functions
 import typed_ast.ast3 as ast
+from itypes import get_type_by_name
 
 TEST_CODE = """
 def adder(a,b):
@@ -18,10 +19,17 @@ class MyTestCase(unittest.TestCase):
         tree = ast.parse(TEST_CODE)
         f = functions.FuncDB()
         f.parse(tree)
-        a = f.get_func_name("adder", "int,int")
-        b = f.get_func_name("adder", "str,str")
-        print(f.get_definition("adder","int,int"))
-        print(f.get_definition("adder","str,str"))
+        i = get_type_by_name("<int>")
+        g = get_type_by_name("<float>")
+        s = get_type_by_name("<str>")
+        a = f.get_func_name("adder", (i, i))
+        b = f.get_func_name("adder", (s, s))
+        b = f.get_func_name("adder", (g, g))
+        print(f.get_definition("adder",(i, i)))
+        print(f.get_implementation("adder",(i, i)))
+        print(f.get_definition("adder",(s, s)))
+        print(f.get_implementation("adder",(s, s)))
+        print(f.get_implementation("adder",(g, g)))
 
     def test_conversion(self):
         print(pymbo.convert(TEST_CODE))
