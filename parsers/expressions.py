@@ -138,7 +138,6 @@ class ExpressionParser(ast.NodeVisitor):
         op = type(node.op).__name__
         left = self.evaluate(node.left)
         right = self.evaluate(node.right)
-        print("BINOP:\nSCOPE:\n",self.scope,"\n", ast.dump(node))
         result = self.get_binary_op_type(left[0], right[0], op)
         if op in self.OPS_MAP:
             op = self.OPS_MAP[op]

@@ -2,7 +2,7 @@ import typed_ast.ast3 as ast
 from collections import defaultdict
 from typing import Dict, Sequence
 from parsers.expressions import get_expression_type_and_code
-from itypes import InferredType
+from itypes import InferredType, get_type_by_value
 
 TypeSig = Sequence[InferredType]
 
@@ -13,7 +13,7 @@ class FunctionImplementation(ast.NodeVisitor):
     def __init__(self, node: ast.FunctionDef, type_sig: TypeSig, funcs: "FuncDB"):
         self.definition = ""
         self.body = ""
-        self.retval = "void"
+        self.retval = get_type_by_value(None)
         self.scope = {}
         self.args = []
         for arg, arg_type in zip(node.args.args, type_sig):
@@ -81,6 +81,18 @@ class FuncDB(ast.NodeVisitor):
     def parse(self, node: ast.AST):
         self.generic_visit(node)
         return self.func_nodes
+
+    def get_all_definitions(self):
+        results = []
+        for func, sigs in self.func_implementations.items():
+            results += [self.get_definition(func, sig) for sig in sigs]
+        return results
+
+    def get_all_implementations(self):
+        results = []
+        for func, sigs in self.func_implementations.items():
+            results += [self.get_implementation(func, sig) for sig in sigs]
+        return results
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         #ignore any inner function defs - not supported...

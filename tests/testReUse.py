@@ -25,11 +25,6 @@ class MyTestCase(unittest.TestCase):
         a = f.get_func_name("adder", (i, i))
         b = f.get_func_name("adder", (s, s))
         b = f.get_func_name("adder", (g, g))
-        print(f.get_definition("adder",(i, i)))
-        print(f.get_implementation("adder",(i, i)))
-        print(f.get_definition("adder",(s, s)))
-        print(f.get_implementation("adder",(s, s)))
-        print(f.get_implementation("adder",(g, g)))
 
     def test_conversion(self):
         print(pymbo.convert(TEST_CODE))

@@ -8,19 +8,9 @@ class Parser(ast.NodeVisitor):
         self.funcs: functions.FuncDB = funcs
         self.code = ""
 
-
-    def start_line(self, text: str) -> None:
-        self.code += " " * self.indent
-        self.code += text
-
-    def visit_Module(self, node: ast.Module) -> None:
-        print("Module found")
-        self.generic_visit(node)
-
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        print("Function found")
         if node.name == "main":
-            self.code += self.funcs.get_implementation("main","")
+            self.funcs.get_implementation("main",())
 
 
 
@@ -31,4 +21,7 @@ def convert(code: str) -> str:
     funcs.parse(tree)
     p = Parser(funcs = funcs)
     p.visit(tree)
-    return p.code
+    code = "\n".join(funcs.get_all_definitions())
+    code += "\n"
+    code += "\n\n".join(funcs.get_all_implementations())
+    return code
