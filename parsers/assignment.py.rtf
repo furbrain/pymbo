@@ -1,0 +1,70 @@
+{\rtf1\ansi\uc0\deff0{\fonttbl{\f0\fmodern\fprq1\fcharset0;}}{\colortbl;\red0\green0\blue0;\red0\green170\blue0;\red221\green0\blue0;\red144\green0\blue144;\red255\green119\blue0;\red255\green51\blue0;\red0\green0\blue255;}\f0 {\cf5 import} {\cf1 ast}\par
+\par
+{\cf5 from} {\cf1 .} {\cf5 import} {\cf1 expressions}\par
+{\cf5 from} {\cf1 ..} {\cf5 import} {\cf1 itypes}, {\cf1 utils}\par
+\par
+{\cf5 def} {\cf7 assign_to_node}({\cf1 target}, {\cf1 value}, {\cf1 scope}):\par
+    {\cf5 if} {\cf1 isinstance}({\cf1 target}, {\cf1 str}):\par
+        {\cf1 target} {\cf1 =} {\cf1 ast}{\cf1 .}{\cf1 parse}({\cf1 target}, {\cf1 mode}{\cf1 =}{\cf2 "}{\cf2 eval}{\cf2 "}){\cf1 .}{\cf1 body}\par
+    {\cf5 if} {\cf1 isinstance}({\cf1 value}, {\cf1 str}):\par
+        {\cf1 value} {\cf1 =} {\cf1 ast}{\cf1 .}{\cf1 parse}({\cf1 value}, {\cf1 mode}{\cf1 =}{\cf2 "}{\cf2 eval}{\cf2 "}){\cf1 .}{\cf1 body}\par
+    {\cf5 if} {\cf1 utils}{\cf1 .}{\cf1 is_ast_sequence}({\cf1 target}):\par
+        {\cf5 if} {\cf1 utils}{\cf1 .}{\cf1 is_ast_node}({\cf1 value}) {\cf1 and} {\cf1 utils}{\cf1 .}{\cf1 is_ast_sequence}({\cf1 value}):\par
+            {\cf1 values} {\cf1 =} []\par
+            {\cf5 for} {\cf1 elt} {\cf1 in} {\cf1 value}{\cf1 .}{\cf1 elts}:\par
+                {\cf5 if} {\cf1 utils}{\cf1 .}{\cf1 is_ast_starred}({\cf1 elt}):\par
+                    {\cf1 values}{\cf1 .}{\cf1 extend}({\cf1 expressions}{\cf1 .}{\cf1 get_expression_type}({\cf1 elt}{\cf1 .}{\cf1 value}, {\cf1 scope}){\cf1 .}{\cf1 get_star_expansion}())\par
+                {\cf5 else}:\par
+                    {\cf1 values}{\cf1 .}{\cf1 append}({\cf1 expressions}{\cf1 .}{\cf1 get_expression_type}({\cf1 elt}, {\cf1 scope}))\par
+            {\cf5 for} {\cf1 i}, {\cf1 subtarget} {\cf1 in} {\cf1 enumerate}({\cf1 target}{\cf1 .}{\cf1 elts}):\par
+                {\cf5 if} {\cf1 utils}{\cf1 .}{\cf1 is_ast_starred}({\cf1 subtarget}):\par
+                    {\cf1 assign_to_node}({\cf1 subtarget}, {\cf1 itypes}{\cf1 .}{\cf1 create_list}({\cf1 *}{\cf1 values}[{\cf1 i}:]), {\cf1 scope})\par
+                {\cf5 else}:\par
+                    {\cf1 assign_to_node}({\cf1 subtarget}, {\cf1 values}[{\cf1 i}], {\cf1 scope})\par
+            {\cf5 return}\par
+        {\cf5 elif} {\cf1 itypes}{\cf1 .}{\cf1 is_inferred_type}({\cf1 value}):\par
+            {\cf5 for} {\cf1 i}, {\cf1 subtarget} {\cf1 in} {\cf1 enumerate}({\cf1 target}{\cf1 .}{\cf1 elts}):\par
+                {\cf5 if} {\cf1 utils}{\cf1 .}{\cf1 is_ast_starred}({\cf1 subtarget}):\par
+                    {\cf1 elements} {\cf1 =} {\cf1 value}{\cf1 .}{\cf1 get_slice_from}({\cf1 i})\par
+                    {\cf1 element_list} {\cf1 =} {\cf1 itypes}{\cf1 .}{\cf1 create_list}({\cf1 *}{\cf1 elements})\par
+                    {\cf1 assign_to_node}({\cf1 subtarget}, {\cf1 element_list}, {\cf1 scope})\par
+                {\cf5 else}:\par
+                    {\cf1 assign_to_node}({\cf1 subtarget}, {\cf1 value}{\cf1 .}{\cf1 get_item}({\cf1 i}), {\cf1 scope})\par
+            {\cf5 return}\par
+    {\cf5 if} {\cf1 utils}{\cf1 .}{\cf1 is_ast_node}({\cf1 value}):\par
+        {\cf1 value} {\cf1 =} {\cf1 expressions}{\cf1 .}{\cf1 get_expression_type}({\cf1 value}, {\cf1 scope})\par
+    {\cf1 parser} {\cf1 =} {\cf1 Assigner}({\cf1 scope}, {\cf1 value})\par
+    {\cf1 parser}{\cf1 .}{\cf1 visit}({\cf1 target})\par
+\par
+\par
+{\cf5 class} {\cf7 Assigner}({\cf1 ast}{\cf1 .}{\cf1 NodeVisitor}):\par
+    {\cf5 def} {\cf7 __init__}({\cf1 self}, {\cf1 scope}, {\cf1 value}):\par
+        {\cf1 self}{\cf1 .}{\cf1 scope} {\cf1 =} {\cf1 scope}\par
+        {\cf1 self}{\cf1 .}{\cf1 value} {\cf1 =} {\cf1 value}\par
+\par
+    {\cf5 def} {\cf7 visit_Name}({\cf1 self}, {\cf1 node}):\par
+        {\cf1 name} {\cf1 =} {\cf1 node}{\cf1 .}{\cf1 id}\par
+        {\cf5 if} {\cf1 name} {\cf1 in} {\cf1 self}{\cf1 .}{\cf1 scope}:\par
+            {\cf1 self}{\cf1 .}{\cf1 scope}[{\cf1 name}] {\cf1 =} {\cf1 self}{\cf1 .}{\cf1 scope}[{\cf1 name}]{\cf1 .}{\cf1 add_type}({\cf1 self}{\cf1 .}{\cf1 value})\par
+        {\cf5 else}:\par
+            {\cf1 self}{\cf1 .}{\cf1 scope}[{\cf1 name}] {\cf1 =} {\cf1 self}{\cf1 .}{\cf1 value}\par
+\par
+    {\cf5 def} {\cf7 visit_Attribute}({\cf1 self}, {\cf1 node}):\par
+        {\cf1 types} {\cf1 =} {\cf1 expressions}{\cf1 .}{\cf1 get_expression_type}({\cf1 node}{\cf1 .}{\cf1 value}, {\cf1 self}{\cf1 .}{\cf1 scope})\par
+        {\cf1 attr} {\cf1 =} {\cf1 node}{\cf1 .}{\cf1 attr}\par
+        {\cf1 types}{\cf1 .}{\cf1 add_attr}({\cf1 attr}, {\cf1 self}{\cf1 .}{\cf1 value})\par
+\par
+    {\cf5 def} {\cf7 visit_Subscript}({\cf1 self}, {\cf1 node}):\par
+        {\cf1 types} {\cf1 =} {\cf1 expressions}{\cf1 .}{\cf1 get_expression_type}({\cf1 node}{\cf1 .}{\cf1 value}, {\cf1 self}{\cf1 .}{\cf1 scope})\par
+        {\cf1 slice_type} {\cf1 =} {\cf1 type}({\cf1 node}{\cf1 .}{\cf1 slice}){\cf1 .}{\cf1 __name__}\par
+        {\cf5 if} {\cf1 slice_type} {\cf1 ==} {\cf2 "}{\cf2 Index}{\cf2 "}:\par
+            {\cf1 types}{\cf1 .}{\cf1 add_item}({\cf1 self}{\cf1 .}{\cf1 value})\par
+        {\cf5 else}:\par
+            {\cf5 for} {\cf1 val} {\cf1 in} {\cf1 self}{\cf1 .}{\cf1 value}:\par
+                {\cf5 if} {\cf1 itypes}{\cf1 .}{\cf1 is_inferred_sequence}({\cf1 val}):\par
+                    {\cf1 types}{\cf1 .}{\cf1 add_item}({\cf1 val}{\cf1 .}{\cf1 get_item}({\cf1 0}))\par
+\par
+    {\cf5 def} {\cf7 visit_Call}({\cf1 self}, {\cf1 node}):\par
+        {\cf3 # do nothing as does  not affect scope or classes}\par
+        {\cf5 pass}\par
+}
