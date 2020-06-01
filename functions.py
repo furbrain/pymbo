@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 
 class FunctionImplementation(ast.NodeVisitor):
     def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", funcs: "FuncDB"):
-        self.definition = ""
         self.body = ""
         self.retval = get_type_by_value(None)
         self.scope = Scope("test.py", 0, 0)
@@ -22,7 +21,13 @@ class FunctionImplementation(ast.NodeVisitor):
         self.indent = 2
         self.type_sig = type_sig
         self.funcs = funcs
-        for n in node.body:
+        self.primary_node = node
+        self.generate_code()
+
+    def generate_code(self):
+        self.body=""
+        self.indent=2
+        for n in self.primary_node.body:
             self.visit(n)
 
     def start_line(self, text: str) -> None:

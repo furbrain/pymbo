@@ -35,10 +35,12 @@ class Context:
         text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args)+")"
         return text
 
-    def get_implementation(self, name: str, typesig: TypeSig):
+    def get_implementation(self, name: str, typesig: TypeSig, regenerate=False):
         func = self.get_func(name, typesig)
         text = self.get_signature(name, typesig) + " {\n"
         text += func.get_variable_definitions()
+        if regenerate:
+            func.generate_code()
         text += func.body
         text += "}"
         return text
@@ -55,7 +57,7 @@ class Context:
     def get_all_implementations(self):
         results = []
         for func, sigs in self.func_implementations.items():
-            results += [self.get_implementation(func, sig) for sig in sigs]
+            results += [self.get_implementation(func, sig, regenerate=True) for sig in sigs]
         return results
 
     def add_function(self, node: ast.FunctionDef):
