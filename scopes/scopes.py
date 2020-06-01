@@ -1,5 +1,5 @@
 class Scope():
-    def __init__(self, name, line_start, indent, parent=None, line_end=-1, context=None):
+    def __init__(self, name="<string>", line_start=0, indent=0, parent=None, line_end=-1, context=None):
         self.name = name
         self.line_start = line_start
         self.indent = indent

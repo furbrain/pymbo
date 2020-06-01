@@ -83,11 +83,11 @@ class InferredType():
         else:
             self.attrs[attr] = typeset
 
-    def get_item(self, index):
-       return UnknownType()
+    def get_item(self, index_type, index_code):
+       return UnknownType(),""
 
     def get_iter(self):
-       return UnknownType()
+       return UnknownType(),""
 
     def get_slice_from(self, index):
        return [UnknownType()]
@@ -102,12 +102,6 @@ class InferredType():
         else:
             return UnknownType()
 
-    def add_type(self, other):
-        assert(is_inferred_type(other))
-        if self == other:
-            return self
-        return TypeSet(self, other)
-
     def get_all_attrs(self):
         return self.attrs.copy()
 
@@ -117,6 +111,8 @@ class InferredType():
     def as_c_type(self):
         tp = self.name.strip("<>")
         if tp is None:
+            return "void"
+        if tp == "None":
             return "void"
         if tp == "int":
             return "int"

@@ -1,0 +1,34 @@
+work out some sort of class function implementation??
+
+Add more test functions
+    Test failures:
+        multiple return types
+        add if branch checking to see if control reaches end of function, and generate return None
+
+        starred arguments
+
+        is and is not operators
+
+        with blocks
+
+    Test succeeds:
+
+        General check c output against python output
+        for loop
+        while loop
+        break
+        continue
+        pass
+
+        imports
+
+        lists
+        strings
+        subscripting - single index to start, then maybe slices...
+
+        tuples
+
+        dicts?
+        classes - and associated attribute access....
+
+        comprehensions

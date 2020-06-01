@@ -1,7 +1,11 @@
 import unittest
 import typed_ast.ast3 as ast
-from parsers.expressions import ExpressionParser
-from functions import FuncDB
+
+from exceptions import UnimplementedFeature
+from old_parsers import ExpressionParser
+from context import Context
+from scopes import Scope
+
 BASIC_TESTS = {
     "'a'": ("<str>", '"a"'),
     '"a"': ("<str>", '"a"'),
@@ -47,16 +51,16 @@ class TestExpressions(unittest.TestCase):
     def run_passing_tests(self, params):
         for code, results in params.items():
             with self.subTest(code=code):
-                p = ExpressionParser(scope={}, funcs=FuncDB())
+                p = ExpressionParser(scope=Scope(), funcs=Context())
                 tree = ast.parse(code)
-                self.assertEqual(results, p.evaluate(tree))
+                self.assertEqual(results, p.visit(tree))
 
     def run_not_implemented_tests(self, params):
         for code in params:
-            with self.assertRaises(NotImplementedError):
-                p = ExpressionParser(scope={}, funcs = FuncDB())
+            with self.assertRaises(UnimplementedFeature):
+                p = ExpressionParser(scope=Scope(), funcs = Context())
                 tree = ast.parse(code)
-                p.evaluate(tree)
+                p.visit(tree)
 
     def test_basics(self):
         self.run_passing_tests(BASIC_TESTS)

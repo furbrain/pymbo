@@ -1,6 +1,6 @@
 import ast
 
-from .. import itypes
+from old_parsers import itypes
 from . import functions, classes, expressions, assignment, modules
 
 

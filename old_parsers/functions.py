@@ -1,5 +1,5 @@
 import ast
-from .. import itypes, scopes
+from old_parsers import itypes, scopes
 
 def get_function_skeleton_from_node(node):
     arg_names = [arg.arg for arg in node.args.args]

@@ -10,11 +10,11 @@ class BaseCompoundType(basics.InferredType):
         super().__init__()
         self.items = None
 
-    def get_item(self, index):
+    def get_item(self, index_type, index_code):
         return self.items
 
     def get_iter(self):
-        return self.get_item(-1)
+        return self.get_item(-1, "")
 
     def get_slice_from(self, index):
         return [*self.items]
@@ -28,7 +28,6 @@ class BaseCompoundType(basics.InferredType):
         
     def __hash__(self):
         return id(self)
-
 
 
 class InferredList(BaseCompoundType):
@@ -72,11 +71,11 @@ class InferredTuple(BaseCompoundType):
     def add_item(self, item):
         pass
 
-    def get_item(self, index):
-        if basics.is_inferred_type(index):
+    def get_item(self, index_type, index_code):
+        if basics.is_inferred_type(index_type):
             return basics.UnknownType()
         try:
-            return self.items[index]
+            return self.items[index_type]
         except IndexError:
             return basics.UnknownType()
 

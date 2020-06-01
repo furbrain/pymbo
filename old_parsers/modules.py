@@ -1,6 +1,6 @@
 import logging
 
-from .. import itypes, scopes, utils
+from old_parsers import itypes, scopes, utils
 from . import module_finder
 
 

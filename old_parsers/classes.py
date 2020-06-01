@@ -1,7 +1,7 @@
 import ast
 
 from . import expressions
-from .. import itypes, scopes
+from old_parsers import itypes, scopes
 
 def get_class_skeleton_from_node(node, scope):
     name = node.name

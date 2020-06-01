@@ -1,7 +1,7 @@
 import ast
 
 from . import expressions
-from .. import itypes, utils
+from old_parsers import itypes, utils
 
 def assign_to_node(target, value, scope):
     if isinstance(target, str):
@@ -29,7 +29,7 @@ def assign_to_node(target, value, scope):
                     element_list = itypes.create_list(*elements)
                     assign_to_node(subtarget, element_list, scope)
                 else:
-                    assign_to_node(subtarget, value.get_item(i), scope)
+                    assign_to_node(subtarget, value.get_item(i, ""), scope)
             return
     if utils.is_ast_node(value):
         value = expressions.get_expression_type(value, scope)
@@ -62,7 +62,7 @@ class Assigner(ast.NodeVisitor):
         else:
             for val in self.value:
                 if itypes.is_inferred_sequence(val):
-                    types.add_item(val.get_item(0))
+                    types.add_item(val.get_item(0, ""))
 
     def visit_Call(self, node):
         # do nothing as does  not affect scope or classes

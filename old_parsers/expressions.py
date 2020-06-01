@@ -1,7 +1,11 @@
 import typed_ast.ast3 as ast
 import warnings
 
-import itypes, scopes, utils
+import exceptions
+from itypes.lister import Lister
+from exceptions import UnhandledNode, UnimplementedFeature
+import itypes
+
 
 def get_expression_type(expression, scope):
     if scope is None:
@@ -9,7 +13,7 @@ def get_expression_type(expression, scope):
     if isinstance(expression, str):
         expression = ast.parse(expression)
     parser = ExpressionParser(scope)
-    return parser.evaluate(expression)[0]
+    return parser.visit(expression)[0]
 
 def get_expression_type_and_code(expression, scope, funcs):
     if scope is None:
@@ -17,7 +21,7 @@ def get_expression_type_and_code(expression, scope, funcs):
     if isinstance(expression, str):
         expression = ast.parse(expression)
     parser = ExpressionParser(scope, funcs)
-    return parser.evaluate(expression)
+    return parser.visit(expression)
 
 
 class ExpressionParser(ast.NodeVisitor):
@@ -50,14 +54,6 @@ class ExpressionParser(ast.NodeVisitor):
         self.scope = scope
         self.funcs = funcs
 
-    def evaluate(self, expression: ast.AST) -> (itypes.InferredType, str):
-        code: str
-        result, code = self.visit(expression)
-        if result is None:
-            warnings.warn("Unimplemented code: {}".format(ast.dump(expression)))
-            return itypes.UnknownType(), code
-        return result, code
-
     def visit_Num(self, node):
         return itypes.get_type_by_value(node.n), str(node.n)
 
@@ -76,11 +72,14 @@ class ExpressionParser(ast.NodeVisitor):
     def visit_NameConstant(self, node):
         return itypes.get_type_by_value(node.value), self.CONSTANTS_MAP[node.value]
 
+    def visit_List(self, node):
+        types_and_codes = [self.visit(n) for n in node.elts]
+
+        tp = Lister.from_elements([t[0] for t in types_and_codes], 40)
+        code = tp.as_literal([t[1] for t in types_and_codes])
+        return tp, code
+
     # not yet implemented
-    # def visit_List(self, node):
-    #     items = self.get_sequence_items(node.elts)
-    #     return itypes.create_list(*items)
-    #
     # def visit_Tuple(self, node):
     #     items = self.get_sequence_items(node.elts)
     #     return itypes.create_tuple(*items)
@@ -106,11 +105,13 @@ class ExpressionParser(ast.NodeVisitor):
 
     def visit_Call(self, node):
         name = node.func.id #note this may fail if more complex caller...
-        args = [self.evaluate(n) for n in node.args]
+        args = [self.visit(n) for n in node.args]
         typesig = tuple([x[0] for x in args])
         args_code = ', '.join(x[1] for x in args)
-        func_name = self.funcs.get_func_name(name, typesig)
         func = self.funcs.get_func(name, typesig)
+        if func is None:
+            raise exceptions.FunctionNotFound(self.scope, node.func)
+        func_name = self.funcs.get_func_name(name, typesig)
         return func.retval, func_name +"("+args_code+")"
 
     # def visit_Lambda(self, node):
@@ -124,20 +125,20 @@ class ExpressionParser(ast.NodeVisitor):
     #
 
     def visit_Expr(self, node):
-        return self.evaluate(node.value)
+        return self.visit(node.value)
 
     def visit_Module(self, node):
-        return self.evaluate(node.body[0])
+        return self.visit(node.body[0])
 
     def visit_IfExp(self, node):
-        test, body, orelse = [self.evaluate(x) for x in (node.test, node.body, node.orelse)]
+        test, body, orelse = [self.visit(x) for x in (node.test, node.body, node.orelse)]
         code = "%s ? %s : %s" % (test[1], body[1], orelse[1])
         return itypes.combine_types(body[0], orelse[0]), code
 
     def visit_BinOp(self, node):
         op = type(node.op).__name__
-        left = self.evaluate(node.left)
-        right = self.evaluate(node.right)
+        left = self.visit(node.left)
+        right = self.visit(node.right)
         result = self.get_binary_op_type(left[0], right[0], op)
         if op in self.OPS_MAP:
             op = self.OPS_MAP[op]
@@ -181,29 +182,25 @@ class ExpressionParser(ast.NodeVisitor):
     # def visit_BoolOp(self, node):
     #     return self.BOOL
     #
-    # def visit_Subscript(self, node):
-    #     value = self.evaluate(node.value)
-    #     slice_type = type(node.slice).__name__
-    #     if slice_type == "Index":
-    #         index = node.slice.value
-    #         index_type = type(node.slice.value).__name__
-    #         if index_type == "Num":
-    #             return value.get_item(index.n)
-    #         else:
-    #             return value.get_item(self.evaluate(index))
-    #     else:
-    #         if hasattr(value, 'get_slice'):
-    #             return itypes.create_list(*value.get_slice_from(0))
-    #         return value
+    def visit_Subscript(self, node):
+        v_type, v_code = self.visit(node.value)
+        slice_type = type(node.slice).__name__
+        if slice_type == "Index":
+            index = node.slice.value
+            i_type, i_code = self.visit(node.slice.value)
+            res_type, res_code = v_type.get_item(i_type, i_code)
+            return res_type, v_code + res_code
+        else:
+            raise UnhandledNode("Slices not yet implemented", node)
 
     def visit_Compare(self, node: ast.AST):
         if len(node.ops) > 1:
-            raise NotImplementedError("Multiple comparisons not yet implemented")
+            raise UnimplementedFeature("Multiple comparisons not yet implemented", self.scope, node)
         op = type(node.ops[0]).__name__
         if op not in self.COMPS_MAP:
-            raise NotImplementedError("Comparator %s not yet implemented" % op)
-        left = self.evaluate(node.left)[1]
-        right = self.evaluate(node.comparators[0])[1]
+            raise UnimplementedFeature("Comparator %s not yet implemented" % op, self.scope, node)
+        left = self.visit(node.left)[1]
+        right = self.visit(node.comparators[0])[1]
 
         code = "(%s %s %s)" % (left, self.COMPS_MAP[op], right)
         return self.BOOL, code
@@ -239,4 +236,4 @@ class ExpressionParser(ast.NodeVisitor):
     #     return scope
 
     def generic_visit(self, node):
-        raise NotImplementedError("%s nodes are not yet implemented" % type(node).__name__)
+        raise UnhandledNode(self.scope, node)
