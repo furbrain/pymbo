@@ -9,7 +9,7 @@ from itypes import InferredType
 TypeSig = Sequence[InferredType]
 
 
-class Context(ast.NodeVisitor):
+class Context:
     def __init__(self):
         self.func_nodes: Dict[str, ast.FunctionDef] = {}
         self.func_implementations: Dict[str, Dict[str, FunctionImplementation]] = defaultdict(dict)
@@ -46,10 +46,6 @@ class Context(ast.NodeVisitor):
     def get_definition(self, name: str, typesig: TypeSig):
         return self.get_signature(name, typesig) + ";\n"
 
-    def parse(self, node: ast.AST):
-        self.generic_visit(node)
-        return self.func_nodes
-
     def get_all_definitions(self):
         results = []
         for func, sigs in self.func_implementations.items():
@@ -62,10 +58,5 @@ class Context(ast.NodeVisitor):
             results += [self.get_implementation(func, sig) for sig in sigs]
         return results
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):
-        #ignore any inner function defs - not supported...
+    def add_function(self, node: ast.FunctionDef):
         self.func_nodes[node.name] = node
-
-    def visit_ClassDef(self, node: ast.ClassDef):
-        #ignore any defs within classes
-        pass

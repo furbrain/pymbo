@@ -5,6 +5,7 @@ import pymbo
 import functions
 import typed_ast.ast3 as ast
 from itypes import get_type_by_name
+from parser.module import ModuleParser
 from tests.utils import PymboTest
 
 TEST_CODE = """
@@ -21,7 +22,8 @@ class TestReUse(PymboTest):
     def test_something(self):
         tree = ast.parse(TEST_CODE)
         f = context.Context()
-        f.parse(tree)
+        m  = ModuleParser(f)
+        m.visit(tree)
         i = get_type_by_name("<int>")
         g = get_type_by_name("<float>")
         s = get_type_by_name("<str>")
