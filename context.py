@@ -1,64 +1,34 @@
-from collections import defaultdict
-from typing import Sequence, Dict, Optional
+from typing import Dict, Optional
 
-from typed_ast import ast3 as ast
-
-from functions import FunctionImplementation
 from itypes import InferredType
-
-TypeSig = Sequence[InferredType]
-
+class Var:
+    def __init__(self, tp: InferredType, is_pointer=False, is_exported=False, is_arg=False):
+        self.tp = tp
+        self.is_pointer = is_pointer
+        self.is_exported = is_exported
+        self.is_arg = is_arg
 
 class Context:
-    def __init__(self):
-        self.func_nodes: Dict[str, ast.FunctionDef] = {}
-        self.func_implementations: Dict[str, Dict[str, FunctionImplementation]] = defaultdict(dict)
+    def __init__(self, parent: Optional["Context"] = None, fname="<string>"):
+        self.fname = fname
+        self.parent = parent
+        self.dct : Dict[str, Var] = {}
 
-    def get_func(self, name: str, typesig: TypeSig) -> Optional[FunctionImplementation]:
-        if name in self.func_nodes:
-            if typesig not in self.func_implementations[name]:
-                impl = FunctionImplementation(self.func_nodes[name], typesig, self)
-                self.func_implementations[name][typesig] = impl
-            return self.func_implementations[name][typesig]
-        else:
-            return None
+    def __setitem__(self, key: str, value: Var):
+        self.dct[key] = value
 
-    def get_func_name(self, name: str, typesig: TypeSig):
-        if len(self.func_implementations[name]) == 1:
-            return name
-        else:
-            args = [str(x).strip("<>") for x in typesig]
-            return name+"__"+'_'.join(args)
+    def __getitem__(self, key:str):
+        if key in self.dct:
+            return self.dct[key]
+        if self.parent is not None:
+            return self.parent[key]
+        raise KeyError
 
-    def get_signature(self, name: str, typesig: TypeSig):
-        func = self.get_func(name, typesig)
-        text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args)+")"
-        return text
+    def __contains__(self, key:str):
+        if key in self.dct:
+            return True
+        return key in self.parent
 
-    def get_implementation(self, name: str, typesig: TypeSig, regenerate=False):
-        func = self.get_func(name, typesig)
-        text = self.get_signature(name, typesig) + " {\n"
-        text += func.get_variable_definitions()
-        if regenerate:
-            func.generate_code()
-        text += func.body
-        text += "}"
-        return text
+    def locals(self):
+        return self.dct.items()
 
-    def get_definition(self, name: str, typesig: TypeSig):
-        return self.get_signature(name, typesig) + ";\n"
-
-    def get_all_definitions(self):
-        results = []
-        for func, sigs in self.func_implementations.items():
-            results += [self.get_definition(func, sig) for sig in sigs]
-        return results
-
-    def get_all_implementations(self):
-        results = []
-        for func, sigs in self.func_implementations.items():
-            results += [self.get_implementation(func, sig, regenerate=True) for sig in sigs]
-        return results
-
-    def add_function(self, node: ast.FunctionDef):
-        self.func_nodes[node.name] = node

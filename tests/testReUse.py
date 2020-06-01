@@ -1,8 +1,6 @@
 import unittest
 
-import context
-import pymbo
-import functions
+import funcdb
 import typed_ast.ast3 as ast
 from itypes import get_type_by_name
 from parser.module import ModuleParser
@@ -21,9 +19,9 @@ def main():
 class TestReUse(PymboTest):
     def test_something(self):
         tree = ast.parse(TEST_CODE)
-        f = context.Context()
-        m  = ModuleParser(f)
+        m  = ModuleParser()
         m.visit(tree)
+        f = m.funcs
         i = get_type_by_name("<int>")
         g = get_type_by_name("<float>")
         s = get_type_by_name("<str>")

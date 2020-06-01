@@ -2,6 +2,7 @@ import typed_ast.ast3 as ast
 import warnings
 
 import exceptions
+from context import Context
 from itypes.lister import Lister
 from exceptions import UnhandledNode, UnimplementedFeature
 import itypes
@@ -50,8 +51,8 @@ class ExpressionParser(ast.NodeVisitor):
         "GtE"  :">=",
     }
 
-    def __init__(self, scope, funcs):
-        self.scope = scope
+    def __init__(self, context: Context, funcs):
+        self.context = context
         self.funcs = funcs
 
     def visit_Num(self, node):
@@ -64,8 +65,8 @@ class ExpressionParser(ast.NodeVisitor):
         return itypes.get_type_by_value(node.s), '"' + node.s + '"'
 
     def visit_Name(self, node):
-        if node.id in self.scope:
-            return self.scope[node.id], node.id
+        if node.id in self.context:
+            return self.context[node.id].tp, node.id
         else:
             return itypes.UnknownType(), None
 
@@ -110,7 +111,7 @@ class ExpressionParser(ast.NodeVisitor):
         args_code = ', '.join(x[1] for x in args)
         func = self.funcs.get_func(name, typesig)
         if func is None:
-            raise exceptions.FunctionNotFound(self.scope, node.func)
+            raise exceptions.FunctionNotFound(node.func)
         func_name = self.funcs.get_func_name(name, typesig)
         return func.retval, func_name +"("+args_code+")"
 
@@ -195,10 +196,10 @@ class ExpressionParser(ast.NodeVisitor):
 
     def visit_Compare(self, node: ast.AST):
         if len(node.ops) > 1:
-            raise UnimplementedFeature("Multiple comparisons not yet implemented", self.scope, node)
+            raise UnimplementedFeature("Multiple comparisons not yet implemented", node)
         op = type(node.ops[0]).__name__
         if op not in self.COMPS_MAP:
-            raise UnimplementedFeature("Comparator %s not yet implemented" % op, self.scope, node)
+            raise UnimplementedFeature("Comparator %s not yet implemented" % op, node)
         left = self.visit(node.left)[1]
         right = self.visit(node.comparators[0])[1]
 
@@ -236,4 +237,4 @@ class ExpressionParser(ast.NodeVisitor):
     #     return scope
 
     def generic_visit(self, node):
-        raise UnhandledNode(self.scope, node)
+        raise UnhandledNode(node)

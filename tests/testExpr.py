@@ -3,7 +3,8 @@ import typed_ast.ast3 as ast
 
 from exceptions import UnimplementedFeature
 from old_parsers import ExpressionParser
-from context import Context
+from funcdb import FuncDB
+from parser.module import ModuleParser
 from scopes import Scope
 
 BASIC_TESTS = {
@@ -51,14 +52,16 @@ class TestExpressions(unittest.TestCase):
     def run_passing_tests(self, params):
         for code, results in params.items():
             with self.subTest(code=code):
-                p = ExpressionParser(scope=Scope(), funcs=Context())
+                m = ModuleParser()
+                p = ExpressionParser(context=m.context, funcs=m.funcs)
                 tree = ast.parse(code)
                 self.assertEqual(results, p.visit(tree))
 
     def run_not_implemented_tests(self, params):
         for code in params:
             with self.assertRaises(UnimplementedFeature):
-                p = ExpressionParser(scope=Scope(), funcs = Context())
+                m = ModuleParser()
+                p = ExpressionParser(context=m.context, funcs=m.funcs)
                 tree = ast.parse(code)
                 p.visit(tree)
 

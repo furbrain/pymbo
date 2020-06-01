@@ -1,26 +1,30 @@
 import typed_ast.ast3 as ast
 from typing import TYPE_CHECKING
+
+from context import Context, Var
 from old_parsers import get_expression_type_and_code
 from itypes import get_type_by_value
 from scopes import Scope
 from exceptions import UnhandledNode
 
 if TYPE_CHECKING:
-    from context import TypeSig
+    from funcdb import TypeSig
+    from parser.module import ModuleParser
 
 
 class FunctionImplementation(ast.NodeVisitor):
-    def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", funcs: "FuncDB"):
+    def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser"):
+        self.module = module
         self.body = ""
         self.retval = get_type_by_value(None)
-        self.scope = Scope("test.py", 0, 0)
+        self.context = Context(module.context)
+        self.funcs = module.funcs
         self.args = []
         for arg, arg_type in zip(node.args.args, type_sig):
-            self.scope[arg.arg] = arg_type
+            self.context[arg.arg] = Var(arg_type, is_arg=True)
             self.args += [arg_type.as_c_type() + " "+ arg.arg]
         self.indent = 2
         self.type_sig = type_sig
-        self.funcs = funcs
         self.primary_node = node
         self.generate_code()
 
@@ -61,20 +65,20 @@ class FunctionImplementation(ast.NodeVisitor):
     def visit_Assign(self, node: ast.Assign) -> None:
         right = self.get_type_and_code(node.value)
         for n in node.targets:
-            self.scope[n.id] = right[0]
+            self.context[n.id] = Var(right[0])
             left = self.get_type_and_code(n)
             self.start_line("{} = {};\n".format(left[1],right[1]))
 
     def get_type_and_code(self, node):
-        type, code = get_expression_type_and_code(node, self.scope, self.funcs)
+        type, code = get_expression_type_and_code(node, self.context, self.funcs)
         return type, code
 
     def generic_visit(self, node):
-        raise UnhandledNode(self.scope, node)
+        raise UnhandledNode(self.context, node)
 
     def get_variable_definitions(self):
         text = ""
-        for var, tp in self.scope.context.items():
-            text += f"  {tp.as_c_type()} {var};\n"
+        for name, var in self.context.locals():
+            text += f"  {var.tp.as_c_type()} {name};\n"
         return text
 
