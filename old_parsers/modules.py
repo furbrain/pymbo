@@ -44,7 +44,7 @@ def module_from_text(text, filename, document, name="__main__"):
     statements.parse_statements(mod_node.body, scope)
     lines = scopes.IndentGetter.get_lines(mod_node)
     mod.scope_list = scope.create_scope_list(lines)
-    mod.scope = scope
+    mod.context = scope
     for name, typeset in scope.context.items():
         mod.add_attr(name, typeset)
     return mod    

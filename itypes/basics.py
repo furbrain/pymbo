@@ -83,7 +83,7 @@ class InferredType():
         else:
             self.attrs[attr] = typeset
 
-    def get_item(self, index_type, index_code):
+    def get_item(self, index_type):
        return UnknownType(),""
 
     def get_iter(self):

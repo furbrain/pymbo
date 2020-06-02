@@ -10,3 +10,4 @@ def convert(code: str) -> str:
     p = ModuleParser()
     p.visit(tree)
     return p.create_code()
+

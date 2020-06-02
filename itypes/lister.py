@@ -8,10 +8,14 @@ class Lister(InferredType):
         self.tp = tp
         self.maxlen = maxlen
         self.name = f"[{tp.name}:{maxlen}]"
+        self.functions = set()
+
+    def prefix(self):
+        return f"list{self.maxlen:d}__{self.tp.as_c_type()}"
 
     def as_c_type(self):
         """get the c_type for use in function params etc"""
-        return f"struct list{self.maxlen:d}__{self.tp.as_c_type()}"
+        return f"struct {self.prefix()}"
 
     def definition(self):
         """get the code to define this as a struct"""
@@ -30,9 +34,10 @@ class Lister(InferredType):
         tp = functools.reduce(combine_types, types)
         return cls(tp, maxlen)
 
-    def get_item(self, index_type, index_code):
+    def get_item(self, index_type):
         if index_type!="<int>":
             raise ValueError("Index type should be an integer")
-        return self.tp, f".get_item({index_code})"
+        self.functions.add("get_item")
+        return self.tp, f"{self.prefix()}__get_item"
 
 

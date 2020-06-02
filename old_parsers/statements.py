@@ -77,7 +77,7 @@ class StatementBlockTypeParser(ast.NodeVisitor):
             name = alias.asname or alias.name
             if not module.has_attr(alias.name):
                 if hasattr(module, 'scope'):
-                    module.set_attr(alias.name, modules.module_from_name(alias.name, module.scope, level=1))
+                    module.set_attr(alias.name, modules.module_from_name(alias.name, module.context, level=1))
             self.scope[name] = module.get_attr(alias.name)
             
     def visit_Return(self, node):

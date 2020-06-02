@@ -189,8 +189,8 @@ class ExpressionParser(ast.NodeVisitor):
         if slice_type == "Index":
             index = node.slice.value
             i_type, i_code = self.visit(node.slice.value)
-            res_type, res_code = v_type.get_item(i_type, i_code)
-            return res_type, v_code + res_code
+            res_type, res_code = v_type.get_item(i_type)
+            return res_type, f"{res_code}({v_code}, {i_code})"
         else:
             raise UnhandledNode("Slices not yet implemented", node)
 
