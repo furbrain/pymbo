@@ -4,7 +4,7 @@ from typing import Optional, Sequence, Dict
 from itypes.lister import Lister
 from . import basics, compound, signatures, classes
 
-BUILTIN_TYPES = (int, bool, float, type(None))
+BUILTIN_TYPES = (int, bool, float, str, type(None))
 
 def get_builtins():
     types: Dict[str, InferredType] = {}

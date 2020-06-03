@@ -22,10 +22,10 @@ def get_expression_type_and_code(expression, module: "ModuleParser", context: "C
 
 
 class ExpressionParser(ast.NodeVisitor):
-    FLOAT = itypes.get_type_by_name('<float>')
-    INT = itypes.get_type_by_name('<int>')
-    STR = itypes.get_type_by_name('<str>')
-    BOOL = itypes.get_type_by_name('<bool>')
+    FLOAT = TypeDB.get_type_by_name('<float>')
+    INT = TypeDB.get_type_by_name('<int>')
+    STR = TypeDB.get_type_by_name('<str>')
+    BOOL = TypeDB.get_type_by_name('<bool>')
     NUMERIC_TYPES = (INT, FLOAT)
     CONSTANTS_MAP = {
         True: "true",
@@ -56,13 +56,13 @@ class ExpressionParser(ast.NodeVisitor):
         pass
 
     def visit_Num(self, node):
-        return itypes.get_type_by_value(node.n), str(node.n)
+        return TypeDB.get_type_by_value(node.n), str(node.n)
 
     def visit_Str(self, node):
-        return itypes.get_type_by_value(node.s), '"' + node.s + '"'
+        return TypeDB.get_type_by_value(node.s), '"' + node.s + '"'
 
     def visit_Bytes(self, node):
-        return itypes.get_type_by_value(node.s), '"' + node.s + '"'
+        return TypeDB.get_type_by_value(node.s), '"' + node.s + '"'
 
     def visit_Name(self, node):
         if node.id in self.context:
@@ -71,7 +71,7 @@ class ExpressionParser(ast.NodeVisitor):
             return itypes.UnknownType(), None
 
     def visit_NameConstant(self, node):
-        return itypes.get_type_by_value(node.value), self.CONSTANTS_MAP[node.value]
+        return TypeDB.get_type_by_value(node.value), self.CONSTANTS_MAP[node.value]
 
     def visit_List(self, node):
         types_and_codes = [self.visit(n) for n in node.elts]
