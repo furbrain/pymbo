@@ -1,8 +1,11 @@
+import inspect
+import traceback
+
 import typed_ast.ast3 as ast
 from typed_ast import ast3 as ast
 
 from context import Context
-from exceptions import UnhandledNode
+from exceptions import UnhandledNode, PymboError
 from funcdb import FuncDB
 from itypes.typedb import TypeDB
 
@@ -12,6 +15,36 @@ class ModuleParser(ast.NodeVisitor):
         self.funcs = FuncDB(self)
         self.context = Context()
         self.types = TypeDB()
+        self.text = ""
+        self.name = ""
+
+    def parse_string(self, text: str):
+        self.text = text
+        self.name = "<string>"
+        self.parse()
+
+    def parse_file(self, fname: str):
+        with open(fname, 'r') as f:
+            self.text = f.read()
+        self.name = fname
+        self.parse()
+
+    def parse(self):
+        tree = ast.parse(self.text, self.name)
+        self.wrap_exception(self.visit, tree)
+
+    def wrap_exception(self, function, *args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except PymboError as exc:
+            tb  = exc.__traceback__
+            for frame in reversed(list(traceback.walk_tb(tb))):
+                if frame[0].f_code.co_name.startswith("visit_"):
+                    args = inspect.getargvalues(frame[0])
+                    node: ast.AST = args.locals["node"]
+                    exc.message = f'  File "{self.name}", line {node.lineno:d}\n'
+                    exc.message += '    ' + self.text.splitlines()[node.lineno-1]
+                    raise
 
     def create_code(self, include_type_funcs=False):
         self.funcs.get_implementation("main", ())

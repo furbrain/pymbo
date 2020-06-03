@@ -1,7 +1,8 @@
 import ast
 
 from old_parsers import itypes
-from . import functions, classes, expressions, assignment, modules
+from . import functions, classes, assignment, modules
+from parser import expressions
 
 
 def parse_statements(statements, scope=None, class_type=None):

@@ -2,7 +2,7 @@ import typed_ast.ast3 as ast
 from typing import TYPE_CHECKING
 
 from context import Context, Var
-from old_parsers import get_expression_type_and_code
+from parser import get_expression_type_and_code
 from itypes import get_type_by_value
 from scopes import Scope
 from exceptions import UnhandledNode

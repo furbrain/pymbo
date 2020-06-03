@@ -26,6 +26,14 @@ class TestLists(PymboTest):
         """
         self.translate(TEST_CODE)
 
+    def test_append(self):
+        TEST_CODE = """
+        def main():
+            a = [1,2,3,4]
+            a.append(5)
+            return a[4]
+        """
+        self.translate(TEST_CODE)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 import ast
 import html
-from . import document, expressions
+from . import document
+from parser import expressions
+
 
 def parse_text(text, location):
     return document.Document(text, location)

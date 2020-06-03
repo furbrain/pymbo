@@ -7,6 +7,8 @@
             }}; 
     """,
     "get_item": {
+        "args": "<int>",
+        "retval": "{tp}",
         "def": """
             {tp} {prefix}__get_item(struct {prefix} *lst, int index);
         """ ,
@@ -21,6 +23,8 @@
         """,
     },
     "set_item": {
+        "args": "<int>, {tp}",
+        "retval": "None",
         "def": """
             void {prefix}__set_item(struct {prefix} *lst, int index, {tp} value);
         """ ,
@@ -34,4 +38,21 @@
             }}
         """,
     },
+    "append": {
+        "args": "{tp}",
+        "retval": "None",
+        "def": """
+            void {prefix}__append(struct {prefix} *self, {tp} value);
+        """,
+        "imp": """
+            void {prefix}__append(struct {prefix} *self, {tp} value) {{
+                if (self->len < {maxlen}) {{
+                    self->items[self->len] = value;
+                    self->len++;                    
+                }} else {{
+                    //again raise an error here - ListFull
+                }}
+            }}
+        """
+    }
 }

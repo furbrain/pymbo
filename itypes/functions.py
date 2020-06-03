@@ -3,14 +3,13 @@ import ast
 from . import basics, builtins
 import utils
 
-class FunctionType(basics.InferredType):
-    def __init__(self, name, args, returns, docstring):
+class NativeFunction(basics.InferredType):
+    def __init__(self, name, args, returns):
         super().__init__()
         self.name = name
         self.args = args
         self.return_value = returns
         self.type = "FUNCTION"
-        self.docstring = docstring
 
     @utils.do_not_recurse('...')
     def __str__(self):

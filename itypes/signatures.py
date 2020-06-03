@@ -83,8 +83,7 @@ def read_function(matching_regex, scope):
         docstring = ''
     return functions.FunctionType(name=matching_regex.group('fname'),
                                   args=[x.strip() for x in matching_regex.group('args').split(',')],
-                                  returns=read_type(matching_regex.group('retval'), scope),
-                                  docstring=docstring)
+                                  returns=read_type(matching_regex.group('retval'), scope))
 
 def read_spec(text, scope):
     funcs = [read_function(x, scope) for x in re.finditer(FUNC_PATTERN, text)]

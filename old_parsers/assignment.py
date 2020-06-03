@@ -1,6 +1,6 @@
 import ast
 
-from . import expressions
+from parser import expressions
 from old_parsers import itypes, utils
 
 def assign_to_node(target, value, scope):

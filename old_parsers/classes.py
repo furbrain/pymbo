@@ -1,6 +1,6 @@
 import ast
 
-from . import expressions
+from parser import expressions
 from old_parsers import itypes, scopes
 
 def get_class_skeleton_from_node(node, scope):

@@ -2,7 +2,7 @@ import unittest
 import typed_ast.ast3 as ast
 
 from exceptions import UnimplementedFeature
-from old_parsers import ExpressionParser
+from parser.expressions import ExpressionParser
 from funcdb import FuncDB
 from parser.module import ModuleParser
 from scopes import Scope
