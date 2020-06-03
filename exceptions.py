@@ -4,20 +4,21 @@ class PymboError(Exception):
     """Base error class for Pymbo"""
 
 class TranslationError(PymboError):
-    def __init__(self, message, node:ast.AST):
-        location = "At: " + str(node.lineno)
-        super().__init__(message, location)
+    pass
 
 class UnhandledNode(TranslationError):
-    def __init__(self, node:ast.AST) -> None:
+    def __init__(self, node: ast.AST) -> None:
         message = "Unhandled language feature {}".format(type(node).__name__)
-        super().__init__(message, node)
+        super().__init__(message)
 
 
 class UnimplementedFeature(TranslationError):
     pass
 
-class FunctionNotFound(TranslationError):
-    def __init__(self, node:ast.AST) -> None:
-        message = "Function '{}' not found".format(node.id)
-        super().__init__(message, node)
+class IdentifierNotFound(TranslationError):
+    def __init__(self, node: ast.AST) -> None:
+        message = "Identifier '{}' not found".format(node.id)
+        super().__init__(message)
+
+class InvalidOperation(TranslationError):
+    pass

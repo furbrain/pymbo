@@ -2,11 +2,13 @@ import typed_ast.ast3 as ast
 import warnings
 
 import exceptions
+from itypes import InferredType
 from itypes.lister import Lister
 from exceptions import UnhandledNode, UnimplementedFeature
 import itypes
 from typing import TYPE_CHECKING
 
+from itypes.typedb import TypeDB
 
 if TYPE_CHECKING:
     from parser.module import ModuleParser
@@ -49,7 +51,9 @@ class ExpressionParser(ast.NodeVisitor):
         self.module = module
         self.context = context
         self.funcs = module.funcs
-        self.types = module.types
+
+    def as_function(self, function: InferredType, *args):
+        pass
 
     def visit_Num(self, node):
         return itypes.get_type_by_value(node.n), str(node.n)
@@ -71,7 +75,7 @@ class ExpressionParser(ast.NodeVisitor):
 
     def visit_List(self, node):
         types_and_codes = [self.visit(n) for n in node.elts]
-        tp = self.types.get_list([t[0] for t in types_and_codes])
+        tp = TypeDB.get_list([t[0] for t in types_and_codes])
         code = tp.as_literal([t[1] for t in types_and_codes])
         return tp, code
 
@@ -100,25 +104,33 @@ class ExpressionParser(ast.NodeVisitor):
     #     return itypes.create_dict(keys, items)
 
     def visit_Call(self, node):
-        name = node.func.id #note this may fail if more complex caller...
         args = [self.visit(n) for n in node.args]
-        typesig = tuple([x[0] for x in args])
-        args_code = ', '.join(x[1] for x in args)
-        func = self.funcs.get_func(name, typesig)
-        if func is None:
-            raise exceptions.FunctionNotFound(node.func)
-        func_name = self.funcs.get_func_name(name, typesig)
-        return func.retval, func_name +"("+args_code+")"
+        args_code = [x[1] for x in args]
+        if isinstance(node.func, ast.Name):
+            name = node.func.id
+            typesig = tuple([x[0] for x in args])
+            func_type = self.funcs.get_func(name, typesig)
+            func_name = self.funcs.get_func_name(name, typesig)
+        elif isinstance(node.func, ast.Attribute):
+            attr_type, code = self.visit(node.func.value)
+            args_code = [code] + args_code
+            func_type = attr_type.get_attr(node.func.attr)
+            func_name = func_type.name
+        else:
+            func_name, func_type = self.visit(node.func)
+        if func_type is None:
+            raise exceptions.IdentifierNotFound(node.func)
+        return func_type.retval, f"{func_name}({', '.join(args_code)})"
 
     # def visit_Lambda(self, node):
     #     arg_names = [arg.arg for arg in node.args.args]
     #     docstring = "Anonymous lambda function"
     #     return itypes.FunctionType('__lambda__', arg_names, self.get_type(node.body), docstring)
     #
-    # def visit_Attribute(self, node):
-    #     base_var = self.get_type(node.value)
-    #     return base_var.get_attr(node.attr)
-    #
+    def visit_Attribute(self, node):
+         attr_type, code = self.visit(node.value)
+         return attr_type.get_attr(node.attr), code
+
 
     def visit_Expr(self, node):
         return self.visit(node.value)
@@ -187,7 +199,7 @@ class ExpressionParser(ast.NodeVisitor):
             res_type, res_code = v_type.get_item(i_type)
             return res_type, f"{res_code}(&{v_code}, {i_code})"
         else:
-            raise UnhandledNode("Slices not yet implemented", node)
+            raise UnhandledNode("Slices not yet implemented")
 
     def visit_Compare(self, node: ast.AST):
         if len(node.ops) > 1:

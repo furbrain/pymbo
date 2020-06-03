@@ -1,24 +1,19 @@
 import ast
+from typing import List
 
-from . import basics, builtins
+from . import basics, builtins, InferredType
 import utils
 
 class NativeFunction(basics.InferredType):
-    def __init__(self, name, args, returns):
+    def __init__(self, name: str, args: List[InferredType], returns: InferredType, definition: str, implementation: str):
         super().__init__()
         self.name = name
         self.args = args
-        self.return_value = returns
+        self.retval = returns
+        self.definition = definition
+        self.implementation = implementation
         self.type = "FUNCTION"
 
     @utils.do_not_recurse('...')
     def __str__(self):
         return "%s(%s) -> (%s)" % (self.name, ', '.join(self.args), self.return_values)
-
-    def get_call_return(self, arg_types):
-        type_mapping = {k: v for k, v in zip(self.args, arg_types)}
-        if isinstance(self.return_value, basics.UnknownType):
-            replacement_type = type_mapping.get(possible_type.type, basics.UnknownType())
-            return replacement_type
-        else:
-            return self.return_value

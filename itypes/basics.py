@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 import utils
-from exceptions import PymboError
+from exceptions import PymboError, InvalidOperation
 
 
 def is_inferred_type(node):
@@ -68,13 +68,14 @@ class InferredType(metaclass=ABCMeta):
 
     def definition(self) -> str:
         return ""
+
     def has_attr(self, attr):
         assert(isinstance(attr, str))
         return attr in self.attrs
 
     def get_attr(self, attr):
         if attr not in self.attrs:
-            self.attrs[attr] = UnknownType()
+            raise InvalidOperation(f"Get attr {attr} not valid for {self.name}")
         return self.attrs[attr]
 
     def set_attr(self, attr, typeset):
@@ -89,19 +90,19 @@ class InferredType(metaclass=ABCMeta):
             self.attrs[attr] = typeset
 
     def get_item(self, index_type):
-       return UnknownType(),""
+        raise InvalidOperation(f"get item not valid for {self.name}")
 
     def set_item(self, index_type, value_type):
-        raise PymboError(f"Set item not implemented for {self.name}")
+        raise InvalidOperation(f"Set item not valid for {self.name}")
 
     def get_iter(self):
-       return UnknownType(),""
+        raise InvalidOperation(f"Set item not valid for {self.name}")
 
     def get_slice_from(self, index):
-       return [UnknownType()]
+        raise InvalidOperation(f"Set item not valid for {self.name}")
 
     def add_item(self, item):
-        pass
+        raise InvalidOperation(f"Set item not valid for {self.name}")
         
     def get_call_return(self, arg_types):
         assert(all(is_inferred_type(x) for x in arg_types))

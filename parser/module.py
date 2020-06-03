@@ -14,7 +14,6 @@ class ModuleParser(ast.NodeVisitor):
     def __init__(self, ):
         self.funcs = FuncDB(self)
         self.context = Context()
-        self.types = TypeDB()
         self.text = ""
         self.name = ""
 
@@ -42,16 +41,16 @@ class ModuleParser(ast.NodeVisitor):
                 if frame[0].f_code.co_name.startswith("visit_"):
                     args = inspect.getargvalues(frame[0])
                     node: ast.AST = args.locals["node"]
-                    exc.message = f'  File "{self.name}", line {node.lineno:d}\n'
-                    exc.message += '    ' + self.text.splitlines()[node.lineno-1]
-                    raise
+                    message = f'{exc.args[0]}\n  at File "{self.name}", line {node.lineno:d}\n'
+                    message += '    ' + self.text.splitlines()[node.lineno-1]
+                    exc.args = (message,)
+                    raise exc
 
     def create_code(self, include_type_funcs=False):
         self.funcs.get_implementation("main", ())
         code = ""
         if include_type_funcs:
-            print("TYPES:", self.types.types )
-            for t in self.types:
+            for t in TypeDB.types.values():
                 code += t.get_type_def()
                 code += t.get_definitions()
                 code += t.get_implementations()

@@ -77,7 +77,7 @@ class FunctionImplementation(ast.NodeVisitor):
                     res_code = v_type.set_item(i_type, right[0])
                     self.start_line(f"{res_code}(&{v_code}, {i_code}, {right[1]});\n")
                 else:
-                    raise UnhandledNode("Slices not yet implemented", node)
+                    raise UnhandledNode("Slices not yet implemented")
 
     def get_type_and_code(self, node):
         tp, code = get_expression_type_and_code(node, self.module, self.context)
