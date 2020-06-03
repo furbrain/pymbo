@@ -11,7 +11,7 @@ from itypes.typedb import TypeDB
 
 
 class ModuleParser(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self, ):
         self.funcs = FuncDB(self)
         self.context = Context()
         self.types = TypeDB()
