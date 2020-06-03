@@ -65,16 +65,26 @@ class FunctionImplementation(ast.NodeVisitor):
     def visit_Assign(self, node: ast.Assign) -> None:
         right = self.get_type_and_code(node.value)
         for n in node.targets:
-            self.context[n.id] = Var(right[0])
-            left = self.get_type_and_code(n)
-            self.start_line("{} = {};\n".format(left[1],right[1]))
+            if isinstance(n, ast.Name):
+                self.context[n.id] = Var(right[0])
+                left = self.get_type_and_code(n)
+                self.start_line("{} = {};\n".format(left[1],right[1]))
+            elif isinstance(n, ast.Subscript):
+                v_type, v_code = self.get_type_and_code(n.value)
+                slice_type = type(n.slice).__name__
+                if slice_type == "Index":
+                    i_type, i_code = self.get_type_and_code(n.slice.value)
+                    res_code = v_type.set_item(i_type, right[0])
+                    self.start_line(f"{res_code}(&{v_code}, {i_code}, {right[1]});\n")
+                else:
+                    raise UnhandledNode("Slices not yet implemented", node)
 
     def get_type_and_code(self, node):
-        type, code = get_expression_type_and_code(node, self.context, self.funcs)
-        return type, code
+        tp, code = get_expression_type_and_code(node, self.module, self.context)
+        return tp, code
 
     def generic_visit(self, node):
-        raise UnhandledNode(self.context, node)
+        raise UnhandledNode(node)
 
     def get_variable_definitions(self):
         text = ""

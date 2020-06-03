@@ -2,26 +2,20 @@ import typed_ast.ast3 as ast
 import warnings
 
 import exceptions
-from context import Context
 from itypes.lister import Lister
 from exceptions import UnhandledNode, UnimplementedFeature
 import itypes
+from typing import TYPE_CHECKING
 
 
-def get_expression_type(expression, scope):
-    if scope is None:
-        warnings.warn("No scope passed to get_expression_type with expression: {}".format(expression))
+if TYPE_CHECKING:
+    from parser.module import ModuleParser
+    from context import Context
+
+def get_expression_type_and_code(expression, module: "ModuleParser", context: "Context"):
     if isinstance(expression, str):
         expression = ast.parse(expression)
-    parser = ExpressionParser(scope)
-    return parser.visit(expression)[0]
-
-def get_expression_type_and_code(expression, scope, funcs):
-    if scope is None:
-        warnings.warn("No scope passed to get_expression_type with expression: {}".format(expression))
-    if isinstance(expression, str):
-        expression = ast.parse(expression)
-    parser = ExpressionParser(scope, funcs)
+    parser = ExpressionParser(module, context)
     return parser.visit(expression)
 
 
@@ -51,9 +45,11 @@ class ExpressionParser(ast.NodeVisitor):
         "GtE"  :">=",
     }
 
-    def __init__(self, context: Context, funcs):
+    def __init__(self, module: "ModuleParser", context: "Context"):
+        self.module = module
         self.context = context
-        self.funcs = funcs
+        self.funcs = module.funcs
+        self.types = module.types
 
     def visit_Num(self, node):
         return itypes.get_type_by_value(node.n), str(node.n)
@@ -75,8 +71,7 @@ class ExpressionParser(ast.NodeVisitor):
 
     def visit_List(self, node):
         types_and_codes = [self.visit(n) for n in node.elts]
-
-        tp = Lister.from_elements([t[0] for t in types_and_codes], 40)
+        tp = self.types.get_list([t[0] for t in types_and_codes])
         code = tp.as_literal([t[1] for t in types_and_codes])
         return tp, code
 
@@ -190,7 +185,7 @@ class ExpressionParser(ast.NodeVisitor):
             index = node.slice.value
             i_type, i_code = self.visit(node.slice.value)
             res_type, res_code = v_type.get_item(i_type)
-            return res_type, f"{res_code}({v_code}, {i_code})"
+            return res_type, f"{res_code}(&{v_code}, {i_code})"
         else:
             raise UnhandledNode("Slices not yet implemented", node)
 

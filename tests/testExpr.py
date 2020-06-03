@@ -53,7 +53,7 @@ class TestExpressions(unittest.TestCase):
         for code, results in params.items():
             with self.subTest(code=code):
                 m = ModuleParser()
-                p = ExpressionParser(context=m.context, funcs=m.funcs)
+                p = ExpressionParser(m, None)
                 tree = ast.parse(code)
                 self.assertEqual(results, p.visit(tree))
 
@@ -61,7 +61,7 @@ class TestExpressions(unittest.TestCase):
         for code in params:
             with self.assertRaises(UnimplementedFeature):
                 m = ModuleParser()
-                p = ExpressionParser(context=m.context, funcs=m.funcs)
+                p = ExpressionParser(m, None)
                 tree = ast.parse(code)
                 p.visit(tree)
 

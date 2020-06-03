@@ -1,5 +1,8 @@
-import itertools
+from abc import ABCMeta, abstractmethod
+
 import utils
+from exceptions import PymboError
+
 
 def is_inferred_type(node):
     return isinstance(node, InferredType)
@@ -22,7 +25,7 @@ def combine_types(a: "InferredType", b: "InferredType"):
         return a
     return UnknownType()
 
-class InferredType():
+class InferredType(metaclass=ABCMeta):
     @classmethod
     def from_type(cls, object_type):
         self = cls()
@@ -63,6 +66,8 @@ class InferredType():
     def __iter__(self):
         return iter((self,))
 
+    def definition(self) -> str:
+        return ""
     def has_attr(self, attr):
         assert(isinstance(attr, str))
         return attr in self.attrs
@@ -85,6 +90,9 @@ class InferredType():
 
     def get_item(self, index_type):
        return UnknownType(),""
+
+    def set_item(self, index_type, value_type):
+        raise PymboError(f"Set item not implemented for {self.name}")
 
     def get_iter(self):
        return UnknownType(),""
@@ -123,6 +131,19 @@ class InferredType():
         if tp == "bool":
             return "bool"
         raise NotImplementedError("Not able to create c type for %s" % self.name)
+
+    def get_type_def(self) -> str:
+        """get the type definitions"""
+        return ""
+
+    def get_definitions(self) -> str:
+        """this returns all the c code needed to go in a header"""
+        return ""
+
+    def get_implementations(self) -> str:
+        """this returns all the c code needed to go in a header"""
+        return ""
+
 
 class UnknownType(InferredType):
     def __init__(self, name=None):

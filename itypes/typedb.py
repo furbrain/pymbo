@@ -13,3 +13,6 @@ class TypeDB:
             maxlen = 40
         tp = Lister.from_elements(elements, maxlen)
         return self.types.setdefault(tp.as_c_type(), tp)
+
+    def __iter__(self):
+        return iter(self.types.values())

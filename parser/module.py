@@ -4,17 +4,25 @@ from typed_ast import ast3 as ast
 from context import Context
 from exceptions import UnhandledNode
 from funcdb import FuncDB
+from itypes.typedb import TypeDB
 
 
 class ModuleParser(ast.NodeVisitor):
     def __init__(self):
         self.funcs = FuncDB(self)
         self.context = Context()
-        self.code = ""
+        self.types = TypeDB()
 
-    def create_code(self):
+    def create_code(self, include_type_funcs=False):
         self.funcs.get_implementation("main", ())
-        code = "\n".join(self.funcs.get_all_definitions())
+        code = ""
+        if include_type_funcs:
+            print("TYPES:", self.types.types )
+            for t in self.types:
+                code += t.get_type_def()
+                code += t.get_definitions()
+                code += t.get_implementations()
+        code += "\n".join(self.funcs.get_all_definitions())
         code += "\n"
         code += "\n\n".join(self.funcs.get_all_implementations())
         return code

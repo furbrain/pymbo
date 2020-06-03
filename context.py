@@ -27,7 +27,10 @@ class Context:
     def __contains__(self, key:str):
         if key in self.dct:
             return True
-        return key in self.parent
+        if self.parent is not None:
+            return key in self.parent
+        else:
+            return False
 
     def locals(self):
         return self.dct.items()
