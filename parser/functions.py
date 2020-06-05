@@ -21,7 +21,7 @@ class FunctionImplementation(ast.NodeVisitor):
         self.funcs = module.funcs
         self.args = []
         for arg, arg_type in zip(node.args.args, type_sig):
-            self.context[arg.arg] = Code(arg_type, is_arg=True)
+            self.context[arg.arg] = Code(arg_type, is_arg=True, code=arg.arg)
             self.args += [arg_type.as_c_type() + " "+ arg.arg]
         self.indent = 2
         self.type_sig = type_sig
@@ -68,14 +68,14 @@ class FunctionImplementation(ast.NodeVisitor):
             if isinstance(n, ast.Name):
                 self.context[n.id] = Code(tp=right.tp, code=n.id)
                 left = self.get_code(n)
-                self.start_line("{} = {};\n".format(left.code, right.as_value()))
+                self.start_line("{} = {};\n".format(left.code, right.as_value().code))
             elif isinstance(n, ast.Subscript):
                 value= self.get_code(n.value)
                 slice_type = type(n.slice).__name__
                 if slice_type == "Index":
                     index = self.get_code(n.slice.value)
                     res_code = value.tp.set_item(index.tp, right.tp)
-                    self.start_line(f"{res_code}({value.as_pointer()}), {index.code}, {right.code});\n")
+                    self.start_line(f"{res_code}({value.as_pointer().code}, {index.code}, {right.code});\n")
                 else:
                     raise UnhandledNode("Slices not yet implemented")
 
