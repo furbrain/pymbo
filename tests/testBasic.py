@@ -1,3 +1,4 @@
+from exceptions import InvalidOperation
 from tests.utils import PymboTest
 
 
@@ -64,5 +65,28 @@ class TestBasics(PymboTest):
         """
         self.translate(TEST_CODE)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_cant_subscript_an_int(self):
+        TEST_CODE = """
+        def main():
+            a = 1
+            return a[0]
+        """
+        self.check_raises(TEST_CODE, InvalidOperation)
+
+    def test_cant_subscript_assign_an_int(self):
+        TEST_CODE = """
+        def main():
+            a = 1
+            a[0] = 2
+            return 1
+        """
+        self.check_raises(TEST_CODE, InvalidOperation)
+
+    def test_cant_get_int_attr(self):
+        TEST_CODE = """
+        def main():
+            a = 1
+            b = a.b
+            return 1
+        """
+        self.check_raises(TEST_CODE, InvalidOperation)

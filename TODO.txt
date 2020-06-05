@@ -1,4 +1,8 @@
 work out some sort of class function implementation??
+generally replace operations with function calls
+ - have "InlineFunction" class where not needed - operation called on left operand only
+
+
 
 Add more test functions
     Test failures:

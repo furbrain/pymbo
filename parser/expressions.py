@@ -129,9 +129,12 @@ class ExpressionParser(ast.NodeVisitor):
     #     return itypes.FunctionType('__lambda__', arg_names, self.get_type(node.body), docstring)
     #
     def visit_Attribute(self, node):
-        ##FIXME this looks wrong
-        attr_type, code = self.visit(node.value)
-        return Code(tp=attr_type.get_attr(node.attr), code=code)
+        value = self.visit(node.value)
+        if value.is_pointer:
+            code = f"{value.code}->{node.attr}"
+        else:
+            code = f"{value.code}.{node.attr}"
+        return Code(tp=value.tp.get_attr(node.attr), code=code)
 
 
     def visit_Expr(self, node):
