@@ -1,4 +1,6 @@
 import unittest
+from typing import Type
+
 import pymbo
 import textwrap
 import os
@@ -31,3 +33,8 @@ class PymboTest(unittest.TestCase):
         compiled_code = pymbo.convert(textwrap.dedent(text))
         self.results_file.write(compiled_code+'\n/*======================*/\n')
         return compiled_code
+
+    def check_raises(self, text: str, exc: Type[Exception]):
+        text = textwrap.dedent(text)
+        with self.assertRaises(exc):
+            compiled_code = pymbo.convert(textwrap.dedent(text))

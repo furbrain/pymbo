@@ -35,6 +35,30 @@ class TestLists(PymboTest):
         """
         self.translate(TEST_CODE)
 
+    def test_subscript_errors_with_wrong_type(self):
+        TEST_CODE = """
+        def main():
+            a = [1,2,3,4]
+            b = a["b"]
+            return b
+        """
+        self.check_raises(TEST_CODE, ValueError)
+
+    def test_subscript_assign_errors_with_wrong_index(self):
+        TEST_CODE = """
+        def main():
+            a = [1,2,3,4]
+            a["b"] = 5
+        """
+        self.check_raises(TEST_CODE, ValueError)
+
+    def test_subscript_assign_errors_with_wrong_value(self):
+        TEST_CODE = """
+        def main():
+            a = [1,2,3,4]
+            a[2] = "a"
+        """
+        self.check_raises(TEST_CODE, ValueError)
 
 if __name__ == '__main__':
     unittest.main()
