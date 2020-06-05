@@ -3,6 +3,9 @@ import pymbo
 import textwrap
 import os
 
+from itypes.typedb import TypeDB
+
+
 class PymboTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -17,6 +20,9 @@ class PymboTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         cls.results_file.close()
+
+    def setUp(self) -> None:
+        TypeDB.reset()
 
     def translate(self, text: str) -> str:
         text = textwrap.dedent(text)

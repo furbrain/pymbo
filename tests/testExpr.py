@@ -51,13 +51,11 @@ COMP_NOT_IMPLEMENTED = (
 class TestExpressions(unittest.TestCase):
     def run_passing_tests(self, params):
         for code, expected in params.items():
-            print("CODE", code)
             with self.subTest(code=code):
                 m = ModuleParser()
                 p = ExpressionParser(m, None)
                 tree = ast.parse(code)
                 results = p.visit(tree)
-                print(results.tp, results.code)
                 self.assertEqual(expected[0], results.tp)
                 self.assertEqual(expected[1], results.code)
 

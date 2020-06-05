@@ -11,10 +11,10 @@
             "args": "int",
             "retval": "{tp}",
             "def": """
-                {tp} {prefix}__append(struct {prefix} *lst, int index);
+                {tp} {prefix}__get_item(struct {prefix} *lst, int index);
             """ ,
             "imp": """
-                {tp} {prefix}__append(struct {prefix} *lst, int index) {{
+                {tp} {prefix}__get_item(struct {prefix} *lst, int index) {{
                     if (index < lst->len) {{
                         return lst->items[index];
                     }} else {{

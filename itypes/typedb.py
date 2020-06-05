@@ -3,7 +3,6 @@ from typing import Optional, Sequence, Dict
 
 from itypes.lister import Lister
 from . import basics
-from old_itypes import classes
 
 BUILTIN_TYPES = (int, bool, float, str)
 
@@ -37,8 +36,12 @@ class TypeDB:
         return cls.get_type_by_name(type_name)
 
     @classmethod
-    def classiter(self):
-        return iter(self.types.values())
+    def classiter(cls):
+        return iter(cls.types.values())
+
+    @classmethod
+    def reset(cls):
+        cls.types = get_builtins()
 
 def get_type_by_value(value) -> basics.InferredType:
     return TypeDB.get_type_by_value(value)

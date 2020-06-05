@@ -75,5 +75,6 @@ class Lister(InferredType):
 
     def get_attr(self, attr: str):
         if attr in self.c_funcs:
+            self.functions.add(attr)
             return self.c_funcs[attr]
         return super().get_attr(attr)
