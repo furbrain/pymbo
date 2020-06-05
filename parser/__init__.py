@@ -1,1 +1,1 @@
-from .expressions import get_expression_type_and_code
+from .expressions import get_expression_code

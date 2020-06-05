@@ -1,8 +1,8 @@
 import typed_ast.ast3 as ast
 from typing import TYPE_CHECKING
 
-from context import Context, Var
-from parser import get_expression_type_and_code
+from context import Context, Code
+from parser import get_expression_code
 from itypes import get_type_by_value
 from scopes import Scope
 from exceptions import UnhandledNode
@@ -21,7 +21,7 @@ class FunctionImplementation(ast.NodeVisitor):
         self.funcs = module.funcs
         self.args = []
         for arg, arg_type in zip(node.args.args, type_sig):
-            self.context[arg.arg] = Var(arg_type, is_arg=True)
+            self.context[arg.arg] = Code(arg_type, is_arg=True)
             self.args += [arg_type.as_c_type() + " "+ arg.arg]
         self.indent = 2
         self.type_sig = type_sig
@@ -39,8 +39,8 @@ class FunctionImplementation(ast.NodeVisitor):
         self.body += text
 
     def visit_If(self, node: ast.If) -> None:
-        itype, code = self.get_type_and_code(node.test)
-        self.start_line("if ({}) {{\n".format(code))
+        test = self.get_code(node.test)
+        self.start_line("if ({}) {{\n".format(test.code))
         self.indent +=2
         for n in node.body:
             self.visit(n)
@@ -54,34 +54,33 @@ class FunctionImplementation(ast.NodeVisitor):
         self.start_line("}\n")
 
     def visit_Return(self, node: ast.Return) -> None:
-        itype, code = self.get_type_and_code(node.value)
-        self.retval = itype #FIXME add error checking code here for multiple retvals
-        self.start_line("return " + code + ";\n")
+        result = self.get_code(node.value)
+        self.retval = result.tp #FIXME add error checking code here for multiple retvals
+        self.start_line("return " + result.code + ";\n")
 
     def visit_Expr(self, node: ast.Expr) -> None:
-        itype, code = self.get_type_and_code(node.value)
-        self.start_line(code + ";\n")
+        result = self.get_code(node.value)
+        self.start_line(result.code + ";\n")
 
     def visit_Assign(self, node: ast.Assign) -> None:
-        right = self.get_type_and_code(node.value)
+        right = self.get_code(node.value)
         for n in node.targets:
             if isinstance(n, ast.Name):
-                self.context[n.id] = Var(right[0])
-                left = self.get_type_and_code(n)
-                self.start_line("{} = {};\n".format(left[1],right[1]))
+                self.context[n.id] = Code(tp=right.tp, code=n.id)
+                left = self.get_code(n)
+                self.start_line("{} = {};\n".format(left.code, right.as_value()))
             elif isinstance(n, ast.Subscript):
-                v_type, v_code = self.get_type_and_code(n.value)
+                value= self.get_code(n.value)
                 slice_type = type(n.slice).__name__
                 if slice_type == "Index":
-                    i_type, i_code = self.get_type_and_code(n.slice.value)
-                    res_code = v_type.set_item(i_type, right[0])
-                    self.start_line(f"{res_code}(&{v_code}, {i_code}, {right[1]});\n")
+                    index = self.get_code(n.slice.value)
+                    res_code = value.tp.set_item(index.tp, right.tp)
+                    self.start_line(f"{res_code}({value.as_pointer()}), {index.code}, {right.code});\n")
                 else:
                     raise UnhandledNode("Slices not yet implemented")
 
-    def get_type_and_code(self, node):
-        tp, code = get_expression_type_and_code(node, self.module, self.context)
-        return tp, code
+    def get_code(self, node: ast.AST) -> Code:
+        return get_expression_code(node, self.module, self.context)
 
     def generic_visit(self, node):
         raise UnhandledNode(node)

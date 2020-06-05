@@ -7,14 +7,13 @@ from itypes.lister import Lister
 from exceptions import UnhandledNode, UnimplementedFeature
 import itypes
 from typing import TYPE_CHECKING
-
 from itypes.typedb import TypeDB
+from context import Context, Code
 
 if TYPE_CHECKING:
     from parser.module import ModuleParser
-    from context import Context
 
-def get_expression_type_and_code(expression, module: "ModuleParser", context: "Context"):
+def get_expression_code(expression, module: "ModuleParser", context: Context) -> Code:
     if isinstance(expression, str):
         expression = ast.parse(expression)
     parser = ExpressionParser(module, context)
@@ -56,28 +55,28 @@ class ExpressionParser(ast.NodeVisitor):
         pass
 
     def visit_Num(self, node):
-        return TypeDB.get_type_by_value(node.n), str(node.n)
+        return Code(tp=TypeDB.get_type_by_value(node.n),code=str(node.n))
 
     def visit_Str(self, node):
-        return TypeDB.get_type_by_value(node.s), '"' + node.s + '"'
+        return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + node.s + '"')
 
     def visit_Bytes(self, node):
-        return TypeDB.get_type_by_value(node.s), '"' + node.s + '"'
+        return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + node.s + '"')
 
     def visit_Name(self, node):
         if node.id in self.context:
-            return self.context[node.id].tp, node.id
+            return self.context[node.id]
         else:
-            return itypes.UnknownType(), None
+            raise exceptions.TranslationError(f"Unknown Variable: {node.id}")
 
     def visit_NameConstant(self, node):
-        return TypeDB.get_type_by_value(node.value), self.CONSTANTS_MAP[node.value]
+        return Code(tp=TypeDB.get_type_by_value(node.value), code=self.CONSTANTS_MAP[node.value])
 
     def visit_List(self, node):
         types_and_codes = [self.visit(n) for n in node.elts]
-        tp = TypeDB.get_list([t[0] for t in types_and_codes])
-        code = tp.as_literal([t[1] for t in types_and_codes])
-        return tp, code
+        tp = TypeDB.get_list([t.tp for t in types_and_codes])
+        code = tp.as_literal([t.code for t in types_and_codes])
+        return Code(tp=tp, code=code)
 
     # not yet implemented
     # def visit_Tuple(self, node):
@@ -105,22 +104,24 @@ class ExpressionParser(ast.NodeVisitor):
 
     def visit_Call(self, node):
         args = [self.visit(n) for n in node.args]
-        args_code = [x[1] for x in args]
+        args_code = [x.code for x in args]
         if isinstance(node.func, ast.Name):
             name = node.func.id
-            typesig = tuple([x[0] for x in args])
+            typesig = tuple([x.tp for x in args])
             func_type = self.funcs.get_func(name, typesig)
             func_name = self.funcs.get_func_name(name, typesig)
         elif isinstance(node.func, ast.Attribute):
-            attr_type, code = self.visit(node.func.value)
-            args_code = [code] + args_code
-            func_type = attr_type.get_attr(node.func.attr)
+            func = self.visit(node.func.value)
+            args_code = [func.code] + args_code
+            func_type = func.tp.get_attr(node.func.attr)
             func_name = func_type.name
         else:
-            func_name, func_type = self.visit(node.func)
+            func = self.visit(node.func)
+            func_type = func.tp
+            func_name = func.code
         if func_type is None:
             raise exceptions.IdentifierNotFound(node.func)
-        return func_type.retval, f"{func_name}({', '.join(args_code)})"
+        return Code(tp=func_type.retval, code=f"{func_name}({', '.join(args_code)})")
 
     # def visit_Lambda(self, node):
     #     arg_names = [arg.arg for arg in node.args.args]
@@ -128,8 +129,9 @@ class ExpressionParser(ast.NodeVisitor):
     #     return itypes.FunctionType('__lambda__', arg_names, self.get_type(node.body), docstring)
     #
     def visit_Attribute(self, node):
-         attr_type, code = self.visit(node.value)
-         return attr_type.get_attr(node.attr), code
+        ##FIXME this looks wrong
+        attr_type, code = self.visit(node.value)
+        return Code(tp=attr_type.get_attr(node.attr), code=code)
 
 
     def visit_Expr(self, node):
@@ -140,20 +142,20 @@ class ExpressionParser(ast.NodeVisitor):
 
     def visit_IfExp(self, node):
         test, body, orelse = [self.visit(x) for x in (node.test, node.body, node.orelse)]
-        code = "%s ? %s : %s" % (test[1], body[1], orelse[1])
-        return itypes.combine_types(body[0], orelse[0]), code
+        code = "%s ? %s : %s" % (test.code, body.code, orelse.code)
+        return Code(tp=itypes.combine_types(body.tp, orelse.tp), code=code)
 
     def visit_BinOp(self, node):
         op = type(node.op).__name__
         left = self.visit(node.left)
         right = self.visit(node.right)
-        result = self.get_binary_op_type(left[0], right[0], op)
+        result = self.get_binary_op_type(left.tp, right.tp, op)
         if op in self.OPS_MAP:
             op = self.OPS_MAP[op]
         else:
             raise NotImplementedError(op)
-        code = "({left} {op} {right})".format(left=left[1], op=op, right=right[1])
-        return result, code
+        code = "({left} {op} {right})".format(left=left.code, op=op, right=right.code)
+        return Code(tp=result, code=code)
 
     def get_binary_op_type(self, left, right, op):
         if self.both_args_numeric(left, right):
@@ -191,13 +193,12 @@ class ExpressionParser(ast.NodeVisitor):
     #     return self.BOOL
     #
     def visit_Subscript(self, node):
-        v_type, v_code = self.visit(node.value)
+        value = self.visit(node.value)
         slice_type = type(node.slice).__name__
         if slice_type == "Index":
-            index = node.slice.value
-            i_type, i_code = self.visit(node.slice.value)
-            res_type, res_code = v_type.get_item(i_type)
-            return res_type, f"{res_code}(&{v_code}, {i_code})"
+            index = self.visit(node.slice.value)
+            accessor = value.tp.get_item(index.tp)
+            return Code(tp=accessor.tp, code=f"{accessor.code}({value.as_pointer().code}, {index.code})")
         else:
             raise UnhandledNode("Slices not yet implemented")
 
@@ -207,11 +208,11 @@ class ExpressionParser(ast.NodeVisitor):
         op = type(node.ops[0]).__name__
         if op not in self.COMPS_MAP:
             raise UnimplementedFeature("Comparator %s not yet implemented" % op, node)
-        left = self.visit(node.left)[1]
-        right = self.visit(node.comparators[0])[1]
+        left = self.visit(node.left).code
+        right = self.visit(node.comparators[0]).code
 
         code = "(%s %s %s)" % (left, self.COMPS_MAP[op], right)
-        return self.BOOL, code
+        return Code(tp=self.BOOL, code=code)
 
     # def visit_ListComp(self, node):
     #     scope = self.get_scope_for_comprehension(node)

@@ -2,6 +2,7 @@ import functools
 import os
 import typing
 
+from context import Code
 from itypes import InferredType, combine_types
 from textwrap import dedent
 
@@ -62,7 +63,7 @@ class Lister(InferredType):
         if index_type!="<int>":
             raise ValueError("Index type should be an integer")
         self.functions.add("get_item")
-        return self.tp, f"{self.prefix()}__get_item"
+        return Code(tp=self.tp, code=f"{self.prefix()}__get_item")
 
     def set_item(self, index_type, value_type):
         if index_type != "<int>":
