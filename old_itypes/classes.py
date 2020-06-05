@@ -1,6 +1,6 @@
 import ast
 
-from . import basics
+from itypes import basics
 
 class ClassType(basics.InferredType):
     def __init__(self, name,  parents, docstring=""):

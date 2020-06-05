@@ -21,10 +21,10 @@ def get_expression_code(expression, module: "ModuleParser", context: Context) ->
 
 
 class ExpressionParser(ast.NodeVisitor):
-    FLOAT = TypeDB.get_type_by_name('<float>')
-    INT = TypeDB.get_type_by_name('<int>')
-    STR = TypeDB.get_type_by_name('<str>')
-    BOOL = TypeDB.get_type_by_name('<bool>')
+    FLOAT = TypeDB.get_type_by_name('float')
+    INT = TypeDB.get_type_by_name('int')
+    STR = TypeDB.get_type_by_name('str')
+    BOOL = TypeDB.get_type_by_name('bool')
     NUMERIC_TYPES = (INT, FLOAT)
     CONSTANTS_MAP = {
         True: "true",

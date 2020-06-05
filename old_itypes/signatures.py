@@ -1,5 +1,5 @@
 import re
-from . import basics, compound
+from itypes import basics, compound
 
 FUNC_PATTERN = r"""(?xm)
                    ^(?P<fname>\w+) [ ]*             # function name

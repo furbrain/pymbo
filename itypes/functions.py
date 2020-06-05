@@ -1,10 +1,10 @@
 import ast
 from typing import List
 
-from . import basics, builtins, InferredType
+from . import InferredType
 import utils
 
-class NativeFunction(basics.InferredType):
+class NativeFunction(InferredType):
     def __init__(self, name: str, args: List[InferredType], returns: InferredType, definition: str, implementation: str):
         super().__init__()
         self.name = name

@@ -1,4 +1,4 @@
-from . import basics
+from itypes import basics
 
 class ModuleType(basics.InferredType):
     def __init__(self, name, document, filename):

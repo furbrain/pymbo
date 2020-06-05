@@ -12,7 +12,7 @@ def adder(a,b):
     
 def main():
     adder(1,2)
-    adder("fred", "george")
+    adder(2.3, 4.5)
     return 1 + 2
 """
 
@@ -22,9 +22,9 @@ class TestReUse(PymboTest):
         m  = ModuleParser()
         m.visit(tree)
         f = m.funcs
-        i = get_type_by_name("<int>")
-        g = get_type_by_name("<float>")
-        s = get_type_by_name("<str>")
+        i = get_type_by_name("int")
+        g = get_type_by_name("float")
+        s = get_type_by_name("str")
         a = f.get_func_name("adder", (i, i))
         b = f.get_func_name("adder", (s, s))
         b = f.get_func_name("adder", (g, g))

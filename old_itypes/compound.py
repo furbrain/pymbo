@@ -1,4 +1,4 @@
-from . import basics
+from itypes import basics
 import utils
 
 def is_inferred_sequence(node):

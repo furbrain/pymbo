@@ -8,7 +8,7 @@
     """,
     "methods": {
         "get_item": {
-            "args": "<int>",
+            "args": "int",
             "retval": "{tp}",
             "def": """
                 {tp} {prefix}__append(struct {prefix} *lst, int index);
@@ -24,7 +24,7 @@
             """,
         },
         "set_item": {
-            "args": "<int>, {tp}",
+            "args": "int, {tp}",
             "retval": "None",
             "def": """
                 void {prefix}__set_item(struct {prefix} *lst, int index, {tp} value);

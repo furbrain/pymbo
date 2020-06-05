@@ -60,13 +60,13 @@ class Lister(InferredType):
         return cls(tp, maxlen)
 
     def get_item(self, index_type):
-        if index_type!="<int>":
+        if index_type!="int":
             raise ValueError("Index type should be an integer")
         self.functions.add("get_item")
         return Code(tp=self.tp, code=f"{self.prefix()}__get_item")
 
     def set_item(self, index_type, value_type):
-        if index_type != "<int>":
+        if index_type != "int":
             raise ValueError("Index type should be an integer")
         if value_type != self.tp:
             raise ValueError(f"Assigned value {value_type} should be {self.tp}")

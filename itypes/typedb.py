@@ -2,20 +2,17 @@ from itypes import InferredType
 from typing import Optional, Sequence, Dict
 
 from itypes.lister import Lister
-from . import basics, compound, signatures, classes
+from . import basics
+from old_itypes import classes
 
-BUILTIN_TYPES = (int, bool, float, str, type(None))
+BUILTIN_TYPES = (int, bool, float, str)
 
 def get_builtins():
     types: Dict[str, InferredType] = {}
     for tp in BUILTIN_TYPES:
-        class_type = classes.ClassType(tp.__name__, [])
-        types[class_type.name] = class_type
-        instance_type = class_type.instance_type
-        if tp.__name__ == "NoneType":
-            instance_type.name = "None"
-        types[instance_type.name] = instance_type
-    types['<None>'] = types['None']
+        types[tp.__name__] = InferredType.from_type(tp)
+        types["None"] = InferredType.from_type(type(None))
+    types["None"].name = "None"
     return types
 
 class TypeDB:
@@ -47,4 +44,4 @@ def get_type_by_value(value) -> basics.InferredType:
     return TypeDB.get_type_by_value(value)
 
 def get_type_by_name(text: str) -> basics.InferredType:
-    return TypeDB.get_type_by_name(str)
+    return TypeDB.get_type_by_name(text)

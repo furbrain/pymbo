@@ -14,14 +14,14 @@ def get_type_name(obj):
         if obj is None:  # Special case for NoneType which is weird
             return 'None'
         else:
-            return '<{}>'.format(type(obj).__name__)
+            return '{}'.format(type(obj).__name__)
 
 def combine_types(a: "InferredType", b: "InferredType"):
     if a==b:
         return a
-    if a == "<int>" and b == "<float>":
+    if a == "int" and b == "float":
         return b
-    if b == "<int>" and a == "<float>":
+    if b == "int" and a == "float":
         return a
     return UnknownType()
 

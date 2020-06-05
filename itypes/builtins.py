@@ -1,7 +1,5 @@
-import os.path
-import warnings
-
-from . import basics, compound, signatures, classes
+from . import basics, compound
+from old_itypes import classes
 
 BUILTIN_TYPES = (int, bool, float, complex, str, bytes, bytearray, list, tuple, range, set, frozenset, dict, type(None))
 
