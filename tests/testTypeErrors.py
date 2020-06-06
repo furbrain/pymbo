@@ -1,23 +1,43 @@
-from tests.utils import PymboTest
-import unittest
-
 from exceptions import TranslationError, UnhandledNode, StaticTypeError
+from tests.utils import PymboTest
 
 
 class TestTypeErrors(PymboTest):
-    @unittest.skip  # pragma: no cover
     def test_different_return_types(self):
         code = """
         def test(a):
             if a==1:
                 return 1
-            else:
-                return "not one"
+            return "not one"
         
         def main():
             test(1)
         """
         self.check_raises(code, StaticTypeError)
+
+    def test_error_falling_from_end_function_that_returns_int(self):
+        code = """
+        def test(a):
+            if a==1:
+                return 1
+
+        def main():
+            test(1)
+        """
+        self.check_raises(code, StaticTypeError)
+
+    def test_no_error_falling_from_function(self):
+        code = """
+        def test(a):
+            if a==1:
+                return 1
+            else:
+                return 2
+                
+        def main():
+            test(1)
+        """
+        self.translate(code)
 
     def test_different_assignment_types(self):
         code = """

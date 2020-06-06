@@ -46,6 +46,7 @@ class ModuleParser(ast.NodeVisitor):
                     message += '    ' + self.text.splitlines()[node.lineno - 1]
                     exc.args = (message,)
                     raise exc
+            raise exc
 
     def create_code(self, include_type_funcs=False):
         self.funcs.get_implementation("main", ())
