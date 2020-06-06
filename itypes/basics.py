@@ -1,7 +1,20 @@
 from abc import ABCMeta
+from typing import TYPE_CHECKING
 
 import utils
 from exceptions import InvalidOperation
+
+if TYPE_CHECKING:  # pragma: no cover
+    from itypes.functions import FunctionType
+
+
+def can_promote(src: "InferredType", dest: "InferredType"):
+    if src == dest:
+        return True
+    if src == "int":
+        if dest == "float":
+            return True
+    return False
 
 
 def get_type_name(obj):
@@ -26,6 +39,8 @@ def combine_types(a: "InferredType", b: "InferredType"):
 
 # noinspection PyMethodMayBeStatic
 class InferredType(metaclass=ABCMeta):
+    pass_by_value = True
+
     @classmethod
     def from_type(cls, object_type):
         self = cls()
@@ -74,6 +89,13 @@ class InferredType(metaclass=ABCMeta):
         if attr not in self.attrs:
             raise InvalidOperation(f"Get attr {attr} not valid for {self.name}")
         return self.attrs[attr]
+
+    def get_method(self, attr: str) -> "FunctionType":
+        from itypes.functions import FunctionType
+        tp = self.get_attr(attr)
+        if isinstance(tp, FunctionType):
+            return tp
+        raise InvalidOperation(f"Attribute {attr} is not a method")
 
     def set_attr(self, attr: str, tp: "InferredType"):
         self.attrs[attr] = tp
@@ -133,3 +155,4 @@ class UnknownType(InferredType):
         else:
             self.name = "Unknown"
             self.type = ""
+        raise ValueError("Shouldn't get here")

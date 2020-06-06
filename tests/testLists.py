@@ -1,3 +1,4 @@
+from exceptions import StaticTypeError
 from tests.utils import PymboTest
 
 
@@ -42,7 +43,7 @@ class TestLists(PymboTest):
             b = a["b"]
             return b
         """
-        self.check_raises(code, ValueError)
+        self.check_raises(code, StaticTypeError)
 
     def test_subscript_assign_errors_with_wrong_index(self):
         code = """
@@ -50,7 +51,7 @@ class TestLists(PymboTest):
             a = [1,2,3,4]
             a["b"] = 5
         """
-        self.check_raises(code, ValueError)
+        self.check_raises(code, StaticTypeError)
 
     def test_subscript_assign_errors_with_wrong_value(self):
         code = """
@@ -58,4 +59,4 @@ class TestLists(PymboTest):
             a = [1,2,3,4]
             a[2] = "a"
         """
-        self.check_raises(code, ValueError)
+        self.check_raises(code, StaticTypeError)

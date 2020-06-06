@@ -6,7 +6,7 @@ import exceptions
 import itypes
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature
-from itypes import InferredType
+from itypes.functions import FunctionType
 from itypes.typedb import TypeDB
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -54,7 +54,7 @@ class ExpressionParser(ast.NodeVisitor):
         self.context = context
         self.funcs = module.funcs
 
-    def as_function(self, function: InferredType, *args):
+    def as_function(self, function: FunctionType, *args):
         pass
 
     def visit_Num(self, node):
@@ -115,9 +115,8 @@ class ExpressionParser(ast.NodeVisitor):
             func_name = self.funcs.get_func_name(name, typesig)
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
-            args_code = [func.code] + args_code
             func_type = func.tp.get_attr(node.func.attr)
-            func_name = func_type.name
+            return func_type.get_code(func, args)
         else:
             func = self.visit(node.func)
             func_type = func.tp
@@ -202,8 +201,8 @@ class ExpressionParser(ast.NodeVisitor):
         slice_type = type(node.slice).__name__
         if slice_type == "Index":
             index = self.visit(node.slice.value)
-            accessor = value.tp.get_item(index.tp)
-            return Code(tp=accessor.tp, code=f"{accessor.code}({value.as_pointer().code}, {index.code})")
+            accessor = value.tp.get_method("get_item")
+            return accessor.get_code(value, [index])
         else:
             raise UnimplementedFeature("Slices not yet implemented")
 

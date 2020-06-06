@@ -1,15 +1,15 @@
 import functools
 import os
 import typing
-
-from context import Code
-from itypes import InferredType, combine_types
 from textwrap import dedent
 
-from itypes.functions import NativeFunction
+from itypes import InferredType, combine_types
+from itypes.functions import NativeMethod
 
 
 class Lister(InferredType):
+    pass_by_value = False
+
     def __init__(self, tp: InferredType, maxlen: int):
         from itypes.typedb import TypeDB
         super().__init__()
@@ -26,7 +26,7 @@ class Lister(InferredType):
             vals = {name: dedent(val.format(**self.get_c_function_dict())) for name, val in func.items()}
             args = [TypeDB.get_type_by_name(arg.strip()) for arg in vals['args'].split(',')]
             retval = TypeDB.get_type_by_name(vals['retval'])
-            self.c_funcs[name] = NativeFunction(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
+            self.c_funcs[name] = NativeMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
 
     def get_c_function_dict(self):
         return {
@@ -58,20 +58,6 @@ class Lister(InferredType):
     def from_elements(cls, types: typing.List[InferredType], maxlen: int) -> "Lister":
         tp = functools.reduce(combine_types, types)
         return cls(tp, maxlen)
-
-    def get_item(self, index_type):
-        if index_type != "int":
-            raise ValueError("Index type should be an integer")
-        self.functions.add("get_item")
-        return Code(tp=self.tp, code=f"{self.prefix()}__get_item")
-
-    def set_item(self, index_type, value_type):
-        if index_type != "int":
-            raise ValueError("Index type should be an integer")
-        if value_type != self.tp:
-            raise ValueError(f"Assigned value {value_type} should be {self.tp}")
-        self.functions.add("set_item")
-        return f"{self.prefix()}__set_item"
 
     def get_attr(self, attr: str):
         if attr in self.c_funcs:

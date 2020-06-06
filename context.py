@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from exceptions import StaticTypeError
-from itypes import InferredType
+from itypes import InferredType, can_promote
 
 
 class Code:
@@ -28,17 +28,19 @@ class Code:
         if self.tp is None:
             self.tp = tp
             return
-        if self.tp == tp:
+        if can_promote(tp, self.tp):
             return
-        elif self.tp == "float":
-            if tp == "int":
-                return
-        elif self.tp == "int":
-            if tp == "float":
-                self.tp = tp
-                return
+        elif can_promote(self.tp, tp):
+            self.tp = tp
+            return
         # not been able to match types - raise error
         raise StaticTypeError(f"Assigning {tp} to {self.tp}{additional_text}")
+
+    def as_function_arg(self):
+        if self.tp.pass_by_value:
+            return self.as_value()
+        else:
+            return self.as_pointer()
 
 class Context:
     def __init__(self, parent: Optional["Context"] = None, fname="<string>"):
