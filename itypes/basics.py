@@ -4,9 +4,6 @@ import utils
 from exceptions import PymboError, InvalidOperation
 
 
-def is_inferred_type(node):
-    return isinstance(node, InferredType)
-
 def get_type_name(obj):
     if isinstance(obj, type):
         return obj.__name__
@@ -63,27 +60,21 @@ class InferredType(metaclass=ABCMeta):
     def __hash__(self):
         return hash(self.name)
 
-    def __iter__(self):
-        return iter((self,))
-
     def definition(self) -> str:
         return ""
 
-    def has_attr(self, attr):
-        assert(isinstance(attr, str))
+    def has_attr(self, attr: str) -> bool:
         return attr in self.attrs
 
-    def get_attr(self, attr):
+    def get_attr(self, attr: str) -> "InferredType":
         if attr not in self.attrs:
             raise InvalidOperation(f"Get attr {attr} not valid for {self.name}")
         return self.attrs[attr]
 
-    def set_attr(self, attr, typeset):
-        assert(is_inferred_type(typeset))
-        self.attrs[attr] = typeset
+    def set_attr(self, attr: str, tp: "InferredType"):
+        self.attrs[attr] = tp
 
-    def add_attr(self, attr, typeset):
-        assert(is_inferred_type(typeset))
+    def add_attr(self, attr: str, typeset: "InferredType"):
         if attr in self.attrs:
             self.attrs[attr] = self.attrs[attr].add_type(typeset)
         else:
@@ -95,41 +86,25 @@ class InferredType(metaclass=ABCMeta):
     def set_item(self, index_type, value_type):
         raise InvalidOperation(f"Set item not valid for {self.name}")
 
-    def get_iter(self):
-        raise InvalidOperation(f"Set item not valid for {self.name}")
-
-    def get_slice_from(self, index):
-        raise InvalidOperation(f"Set item not valid for {self.name}")
 
     def add_item(self, item):
         raise InvalidOperation(f"Set item not valid for {self.name}")
-        
-    def get_call_return(self, arg_types):
-        assert(all(is_inferred_type(x) for x in arg_types))
-        if "__call__" in self.attrs:
-            return self.attrs['__call__'].get_call_return(arg_types)
-        else:
-            return UnknownType()
 
     def get_all_attrs(self):
         return self.attrs.copy()
 
-    def get_star_expansion(self):
-        return [UnknownType()]
-
     def as_c_type(self):
-        tp = self.name.strip("<>")
-        if tp is None:
+        if self.name is None:
             return "void"
-        if tp == "None":
+        if self.name == "None":
             return "void"
-        if tp == "int":
+        if self.name == "int":
             return "int"
-        if tp == "float":
+        if self.name == "float":
             return "double"
-        if tp == "str":
+        if self.name == "str":
             return "char*"
-        if tp == "bool":
+        if self.name == "bool":
             return "bool"
         raise NotImplementedError("Not able to create c type for %s" % self.name)
 

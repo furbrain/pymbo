@@ -4,10 +4,9 @@ from typing import TYPE_CHECKING
 from context import Context, Code
 from parser import get_expression_code
 from itypes import get_type_by_value
-from scopes import Scope
 from exceptions import UnhandledNode
 
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     from funcdb import TypeSig
     from parser.module import ModuleParser
 

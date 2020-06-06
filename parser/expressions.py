@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from itypes.typedb import TypeDB
 from context import Context, Code
 
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     from parser.module import ModuleParser
 
 def get_expression_code(expression, module: "ModuleParser", context: Context) -> Code:
@@ -61,7 +61,7 @@ class ExpressionParser(ast.NodeVisitor):
         return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + node.s + '"')
 
     def visit_Bytes(self, node):
-        return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + node.s + '"')
+        return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + str(node.s, 'utf-8') + '"')
 
     def visit_Name(self, node):
         if node.id in self.context:

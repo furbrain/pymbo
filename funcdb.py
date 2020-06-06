@@ -7,7 +7,7 @@ from parser.functions import FunctionImplementation
 from itypes import InferredType
 
 TypeSig = Sequence[InferredType]
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     from parser.module import ModuleParser
 
 

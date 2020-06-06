@@ -38,7 +38,8 @@ class ModuleParser(ast.NodeVisitor):
         except PymboError as exc:
             tb  = exc.__traceback__
             for frame in reversed(list(traceback.walk_tb(tb))):
-                if frame[0].f_code.co_name.startswith("visit_"):
+                if frame[0].f_code.co_name.startswith("visit_") \
+                  or frame[0].f_code.co_name=="generic_visit":
                     args = inspect.getargvalues(frame[0])
                     node: ast.AST = args.locals["node"]
                     message = f'{exc.args[0]}\n  at File "{self.name}", line {node.lineno:d}\n'

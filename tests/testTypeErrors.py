@@ -1,10 +1,11 @@
 from tests.utils import PymboTest
 import unittest
 
-from exceptions import TranslationError
+from exceptions import TranslationError, UnhandledNode
+
 
 class TestTypeErrors(PymboTest):
-    @unittest.skip
+    @unittest.skip # pragma: no cover
     def test_different_return_types(self):
         TEST_CODE = """
         def test(a):
@@ -16,10 +17,9 @@ class TestTypeErrors(PymboTest):
         def main():
             test(1)
         """
-        with self.assertRaises(TranslationError):
-            self.translate(TEST_CODE)
+        self.check_raises(TEST_CODE, TranslationError)
 
-    @unittest.skip
+    @unittest.skip # pragma: no cover
     def test_different_assignment_types(self):
         TEST_CODE = """
         def test(a):
@@ -29,9 +29,20 @@ class TestTypeErrors(PymboTest):
         def main():
             test(1)
         """
-        with self.assertRaises(TranslationError):
-            self.translate(TEST_CODE)
+        self.check_raises(TEST_CODE, TranslationError)
 
+    def test_unknown_variable(self):
+        TEST_CODE = """
+        def main():
+            b = 1
+            b = a
+        """
+        self.check_raises(TEST_CODE, TranslationError)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_delete_not_valid(self):
+        TEST_CODE = """
+        def main():
+            b = 1
+            del b
+        """
+        self.check_raises(TEST_CODE, UnhandledNode)

@@ -32,5 +32,3 @@ class TestReUse(PymboTest):
     def test_conversion(self):
         self.translate(TEST_CODE)
 
-if __name__ == '__main__':
-    unittest.main()

@@ -59,6 +59,3 @@ class TestLists(PymboTest):
             a[2] = "a"
         """
         self.check_raises(TEST_CODE, ValueError)
-
-if __name__ == '__main__':
-    unittest.main()

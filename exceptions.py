@@ -1,5 +1,4 @@
 import typed_ast.ast3 as ast
-import scopes
 class PymboError(Exception):
     """Base error class for Pymbo"""
 

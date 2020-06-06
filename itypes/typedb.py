@@ -12,6 +12,7 @@ def get_builtins():
         types[tp.__name__] = InferredType.from_type(tp)
         types["None"] = InferredType.from_type(type(None))
     types["None"].name = "None"
+    types["bytes"] = types["str"]
     return types
 
 class TypeDB:

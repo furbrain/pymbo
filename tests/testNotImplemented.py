@@ -1,3 +1,4 @@
+from exceptions import UnhandledNode, TranslationError
 from tests.utils import PymboTest
 import unittest
 
@@ -12,18 +13,20 @@ class TestNotImplemented(PymboTest):
         def main():
             eval("1+2")
         """
-        with self.assertRaises(exceptions.TranslationError):
-            self.translate(TEST_CODE)
+        self.check_raises(TEST_CODE, TranslationError)
 
 
-    @unittest.skip
+    @unittest.skip # pragma: no cover
     def test_no_inheritance(self):
         TEST_CODE = """
         class A(list):
             pass
         """
-        with self.assertRaises(exceptions.TranslationError):
-            self.translate(TEST_CODE)
+        self.check_raises(TEST_CODE, TranslationError)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_yield_not_valid(self):
+        TEST_CODE = """
+        def main():
+            yield 1
+        """
+        self.check_raises(TEST_CODE, UnhandledNode)

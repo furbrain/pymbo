@@ -2,14 +2,13 @@ import unittest
 import typed_ast.ast3 as ast
 
 from exceptions import UnimplementedFeature
-from parser.expressions import ExpressionParser
-from funcdb import FuncDB
+from parser import get_expression_code
 from parser.module import ModuleParser
-from scopes import Scope
 
 BASIC_TESTS = {
     "'a'": ("str", '"a"'),
     '"a"': ("str", '"a"'),
+    'b"a"': ("str", '"a"'),
     "1":   ("int", "1"),
     "2.3": ("float", "2.3"),
     "5.0": ("float", "5.0"),
@@ -52,20 +51,14 @@ class TestExpressions(unittest.TestCase):
     def run_passing_tests(self, params):
         for code, expected in params.items():
             with self.subTest(code=code):
-                m = ModuleParser()
-                p = ExpressionParser(m, None)
-                tree = ast.parse(code)
-                results = p.visit(tree)
+                results = get_expression_code(code, ModuleParser(), None)
                 self.assertEqual(expected[0], results.tp)
                 self.assertEqual(expected[1], results.code)
 
     def run_not_implemented_tests(self, params):
         for code in params:
             with self.assertRaises(UnimplementedFeature):
-                m = ModuleParser()
-                p = ExpressionParser(m, None)
-                tree = ast.parse(code)
-                p.visit(tree)
+                get_expression_code(code, ModuleParser(), None)
 
     def test_basics(self):
         self.run_passing_tests(BASIC_TESTS)
@@ -81,6 +74,3 @@ class TestExpressions(unittest.TestCase):
 
     def test_comp_fails(self):
         self.run_not_implemented_tests(COMP_NOT_IMPLEMENTED)
-
-if __name__ == '__main__':
-    unittest.main()
