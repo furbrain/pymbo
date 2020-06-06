@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 import typed_ast.ast3 as ast
 
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError
-from itypes import TypeDB, InferredType
+from exceptions import UnhandledNode, UnimplementedFeature
+from itypes import TypeDB
 from parser import get_expression_code
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -17,7 +17,7 @@ class FunctionImplementation(ast.NodeVisitor):
     def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser"):
         self.module = module
         self.body = ""
-        self.retval = None
+        self.retval = Code(tp=None)
         self.all_paths_return = False
         self.context = Context(module.context)
         self.funcs = module.funcs
@@ -33,12 +33,12 @@ class FunctionImplementation(ast.NodeVisitor):
     def generate_code(self):
         self.body = ""
         self.indent = 2
-        self.retval = None
+        self.retval = Code(tp=None)
         self.all_paths_return = False
         for n in self.primary_node.body:
             self.visit(n)
         if not self.all_paths_return:
-            self.set_return_type(TypeDB.get_type_by_value(None))
+            self.retval.assign_type(TypeDB.get_type_by_value(None), " as return value")
 
     def start_line(self, text: str) -> None:
         self.body += " " * self.indent
@@ -65,15 +65,9 @@ class FunctionImplementation(ast.NodeVisitor):
 
     def visit_Return(self, node: ast.Return) -> None:
         result = self.get_code(node.value)
-        self.set_return_type(result.tp)
+        self.retval.assign_type(result.tp, " as return value")
         self.start_line("return " + result.code + ";\n")
         self.all_paths_return = True
-
-    def set_return_type(self, tp: InferredType):
-        if self.retval is None:
-            self.retval = tp
-        elif self.retval != tp:
-            raise StaticTypeError(f"Function returns both {self.retval} and {tp}")
 
     def visit_Expr(self, node: ast.Expr) -> None:
         result = self.get_code(node.value)
@@ -85,7 +79,7 @@ class FunctionImplementation(ast.NodeVisitor):
             if isinstance(n, ast.Name):
                 left = self.context.setdefault(n.id, Code(tp=right.tp, code=n.id))
                 if left.tp != right.tp:
-                    raise StaticTypeError(f"Assigning {right.tp} to {left.tp}")
+                    left.assign_type(right.tp)
                 self.start_line("{} = {};\n".format(left.code, right.as_value().code))
             elif isinstance(n, ast.Subscript):
                 value = self.get_code(n.value)

@@ -3,8 +3,8 @@ from typing import Sequence, Dict, Optional, TYPE_CHECKING
 
 from typed_ast import ast3 as ast
 
-from parser.functions import FunctionImplementation
 from itypes import InferredType
+from parser.functions import FunctionImplementation
 
 TypeSig = Sequence[InferredType]
 if TYPE_CHECKING:  # pragma: no cover
@@ -35,7 +35,7 @@ class FuncDB:
 
     def get_signature(self, name: str, typesig: TypeSig):
         func = self.get_func(name, typesig)
-        text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args) + ")"
+        text = func.retval.tp.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args) + ")"
         return text
 
     def get_implementation(self, name: str, typesig: TypeSig, regenerate=False):

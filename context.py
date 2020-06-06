@@ -1,10 +1,11 @@
 from typing import Dict, Optional
 
+from exceptions import StaticTypeError
 from itypes import InferredType
 
 
 class Code:
-    def __init__(self, tp: InferredType, is_pointer=False, is_exported=False, is_arg=False, code=""):
+    def __init__(self, tp: Optional[InferredType], is_pointer=False, is_exported=False, is_arg=False, code=""):
         self.tp = tp
         self.is_pointer = is_pointer
         self.is_exported = is_exported
@@ -23,6 +24,21 @@ class Code:
         else:
             return self
 
+    def assign_type(self, tp, additional_text=""):
+        if self.tp is None:
+            self.tp = tp
+            return
+        if self.tp == tp:
+            return
+        elif self.tp == "float":
+            if tp == "int":
+                return
+        elif self.tp == "int":
+            if tp == "float":
+                self.tp = tp
+                return
+        # not been able to match types - raise error
+        raise StaticTypeError(f"Assigning {tp} to {self.tp}{additional_text}")
 
 class Context:
     def __init__(self, parent: Optional["Context"] = None, fname="<string>"):
