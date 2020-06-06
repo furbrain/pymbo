@@ -1,6 +1,6 @@
 import typed_ast.ast3 as ast
 
-from itypes import get_type_by_name
+from itypes import TypeDB
 from parser.module import ModuleParser
 from tests.utils import PymboTest
 
@@ -21,9 +21,9 @@ class TestReUse(PymboTest):
         m = ModuleParser()
         m.visit(tree)
         f = m.funcs
-        i = get_type_by_name("int")
-        g = get_type_by_name("float")
-        s = get_type_by_name("str")
+        i = TypeDB.get_type_by_name("int")
+        g = TypeDB.get_type_by_name("float")
+        s = TypeDB.get_type_by_name("str")
         f.get_func_name("adder", (i, i))
         f.get_func_name("adder", (s, s))
         f.get_func_name("adder", (g, g))

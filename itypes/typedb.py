@@ -45,11 +45,3 @@ class TypeDB:
     @classmethod
     def reset(cls):
         cls.types = get_builtins()
-
-
-def get_type_by_value(value) -> basics.InferredType:
-    return TypeDB.get_type_by_value(value)
-
-
-def get_type_by_name(text: str) -> basics.InferredType:
-    return TypeDB.get_type_by_name(text)
