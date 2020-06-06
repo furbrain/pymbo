@@ -24,11 +24,12 @@
             """,
         },
         "set_item": {
+            "style": "method",
             "args": "int, {tp}",
             "retval": "None",
             "def": """
                 void {prefix}__set_item(struct {prefix} *lst, int index, {tp} value);
-            """ ,
+            """,
             "imp": """
                 void {prefix}__set_item(struct {prefix} *lst, int index, {tp} value) {{
                     if (index < lst->len) {{
@@ -55,6 +56,13 @@
                     }}
                 }}
             """
+        },
+    },
+    "inlines": {
+        "len": {
+            "args": "",
+            "retval": "int",
+            "template": "{obj.as_accessor()}len"
         }
     }
 }

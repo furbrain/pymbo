@@ -14,15 +14,15 @@ class Code:
 
     def as_pointer(self):
         if self.is_pointer:
-            return self
+            return self.code
         else:
-            return Code(tp=self.tp, is_pointer=True, code=f"&({self.code})")
+            return f"&({self.code})"
 
     def as_value(self):
         if self.is_pointer:
-            return Code(tp=self.tp, is_pointer=False, code=f"*({self.code})")
+            return f"*({self.code})"
         else:
-            return self
+            return self.code
 
     def assign_type(self, tp, additional_text=""):
         if self.tp is None:
@@ -41,6 +41,13 @@ class Code:
             return self.as_value()
         else:
             return self.as_pointer()
+
+    def as_accessor(self):
+        if self.is_pointer:
+            return f"({self.code})->"
+        else:
+            return f"({self.code})."
+
 
 class Context:
     def __init__(self, parent: Optional["Context"] = None, fname="<string>"):

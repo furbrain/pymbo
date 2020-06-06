@@ -60,3 +60,11 @@ class TestLists(PymboTest):
             a[2] = "a"
         """
         self.check_raises(code, StaticTypeError)
+
+    def test_len_works(self):
+        code = """
+        def main():
+            a = [1,2,3,4]
+            b= a.len()
+        """
+        self.translate(code)

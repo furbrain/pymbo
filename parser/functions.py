@@ -80,7 +80,7 @@ class FunctionImplementation(ast.NodeVisitor):
                 left = self.context.setdefault(n.id, Code(tp=right.tp, code=n.id))
                 if left.tp != right.tp:
                     left.assign_type(right.tp)
-                self.start_line("{} = {};\n".format(left.code, right.as_value().code))
+                self.start_line("{} = {};\n".format(left.code, right.as_value()))
             elif isinstance(n, ast.Subscript):
                 value = self.get_code(n.value)
                 slice_type = type(n.slice).__name__
