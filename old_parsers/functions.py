@@ -1,11 +1,13 @@
 import ast
 from old_parsers import itypes, scopes
 
+
 def get_function_skeleton_from_node(node):
     arg_names = [arg.arg for arg in node.args.args]
     docstring = ast.get_docstring(node)
     return itypes.FunctionType(node.name, arg_names, itypes.UnknownType('return'), docstring)
-        
+
+
 def create_member_scope_from_node(func, node, parent_scope, owning_class):
     first_arg = None
     if node.args.args:  # exclude case where no args applied - likely staticmethod
@@ -15,12 +17,14 @@ def create_member_scope_from_node(func, node, parent_scope, owning_class):
             first_arg = owning_class.instance_type
         else:
             first_arg = None
-    scope =  create_basic_scope_from_node(func, node, parent_scope.parent, first_arg)
+    scope = create_basic_scope_from_node(func, node, parent_scope.parent, first_arg)
     scope[owning_class.name] = owning_class
     return scope
-    
+
+
 def create_function_scope_from_node(func, node, parent_scope):
     return create_basic_scope_from_node(func, node, parent_scope)
+
 
 def create_basic_scope_from_node(func, node, parent_scope, first_arg=None):
     if parent_scope is None:
@@ -37,16 +41,19 @@ def create_basic_scope_from_node(func, node, parent_scope, first_arg=None):
         scope[node.args.vararg.arg] = inferred_list
     if node.args.kwarg:
         inferred_dict = itypes.create_dict(keys=[itypes.get_type_by_name('<str>')],
-                                             values=[itypes.UnknownType()])
+                                           values=[itypes.UnknownType()])
         scope[node.args.kwarg.arg] = inferred_dict
     scope[node.name] = func
     return scope
 
+
 def node_is_staticmethod(node):
     return getattr(node, "id", "") == "staticmethod"
 
+
 def node_is_classmethod(node):
     return getattr(node, "id", "") == "classmethod"
+
 
 def make_arg_dict(node):
     dct = {}

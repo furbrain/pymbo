@@ -28,7 +28,7 @@ class ModuleRepository:
                 mod = module_from_text(f.read(), filename, parent_module.document, name=name)
                 cls.known_modules[filename] = mod
         except (IOError, TypeError) as e:
-            logging.warn("Error opening {} as {}: {}".format(name, filename, e))
+            logging.warning("Error opening {} as {}: {}".format(name, filename, e))
         logging.debug("attr for {}: {}".format(name, str(mod.attrs)))
         return mod
         

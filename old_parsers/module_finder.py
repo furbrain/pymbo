@@ -31,7 +31,7 @@ def get_possible_path(path, starting_file, levels=0):
 def get_builtin_module(path):
     try:
         spec = importlib.util.find_spec(path)
-    except:
+    except ImportError:
         return None
     if is_valid_spec(spec):
         return spec.origin

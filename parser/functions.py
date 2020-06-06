@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from context import Context, Code
 from parser import get_expression_code
 from itypes import get_type_by_value
-from exceptions import UnhandledNode
+from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError
 
 if TYPE_CHECKING: # pragma: no cover
     from funcdb import TypeSig
@@ -65,8 +65,9 @@ class FunctionImplementation(ast.NodeVisitor):
         right = self.get_code(node.value)
         for n in node.targets:
             if isinstance(n, ast.Name):
-                self.context[n.id] = Code(tp=right.tp, code=n.id)
-                left = self.get_code(n)
+                left = self.context.setdefault(n.id, Code(tp=right.tp, code=n.id))
+                if left.tp != right.tp:
+                    raise StaticTypeError(f"Assigning {right.tp} to {left.tp}")
                 self.start_line("{} = {};\n".format(left.code, right.as_value().code))
             elif isinstance(n, ast.Subscript):
                 value= self.get_code(n.value)

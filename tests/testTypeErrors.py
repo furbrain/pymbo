@@ -19,9 +19,8 @@ class TestTypeErrors(PymboTest):
         """
         self.check_raises(TEST_CODE, TranslationError)
 
-    @unittest.skip # pragma: no cover
     def test_different_assignment_types(self):
-        TEST_CODE = """
+        code = """
         def test(a):
             b=1
             b="one"
@@ -29,7 +28,7 @@ class TestTypeErrors(PymboTest):
         def main():
             test(1)
         """
-        self.check_raises(TEST_CODE, TranslationError)
+        self.check_raises(code, StaticTypeError)
 
     def test_unknown_variable(self):
         TEST_CODE = """
