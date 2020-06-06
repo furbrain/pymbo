@@ -1,17 +1,17 @@
 import inspect
 import traceback
 
-import typed_ast.ast3 as ast
 from typed_ast import ast3 as ast
 
 from context import Context
-from exceptions import UnhandledNode, PymboError
+from exceptions import PymboError
 from funcdb import FuncDB
 from itypes.typedb import TypeDB
 
 
+# noinspection PyPep8Naming
 class ModuleParser(ast.NodeVisitor):
-    def __init__(self, ):
+    def __init__(self):
         self.funcs = FuncDB(self)
         self.context = Context()
         self.text = ""
@@ -36,14 +36,14 @@ class ModuleParser(ast.NodeVisitor):
         try:
             return function(*args, **kwargs)
         except PymboError as exc:
-            tb  = exc.__traceback__
+            tb = exc.__traceback__
             for frame in reversed(list(traceback.walk_tb(tb))):
                 if frame[0].f_code.co_name.startswith("visit_") \
-                  or frame[0].f_code.co_name=="generic_visit":
+                        or frame[0].f_code.co_name == "generic_visit":
                     args = inspect.getargvalues(frame[0])
                     node: ast.AST = args.locals["node"]
                     message = f'{exc.args[0]}\n  at File "{self.name}", line {node.lineno:d}\n'
-                    message += '    ' + self.text.splitlines()[node.lineno-1]
+                    message += '    ' + self.text.splitlines()[node.lineno - 1]
                     exc.args = (message,)
                     raise exc
 
@@ -61,9 +61,9 @@ class ModuleParser(ast.NodeVisitor):
         return code
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        #ignore any inner function defs - not supported...
+        # ignore any inner function defs - not supported...
         self.funcs.add_function(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        #ignore any defs within classes
+        # ignore any defs within classes
         pass

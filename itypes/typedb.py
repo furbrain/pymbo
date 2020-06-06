@@ -1,10 +1,11 @@
-from itypes import InferredType
-from typing import Optional, Sequence, Dict
+from typing import Optional, Dict, List
 
+from itypes import InferredType
 from itypes.lister import Lister
 from . import basics
 
 BUILTIN_TYPES = (int, bool, float, str)
+
 
 def get_builtins():
     types: Dict[str, InferredType] = {}
@@ -15,11 +16,12 @@ def get_builtins():
     types["bytes"] = types["str"]
     return types
 
+
 class TypeDB:
     types: Dict[str, InferredType] = get_builtins()
 
     @classmethod
-    def get_list(cls, elements: Sequence[InferredType], maxlen: Optional[int] = None):
+    def get_list(cls, elements: List[InferredType], maxlen: Optional[int] = None):
         if maxlen is None:
             maxlen = 40
         tp = Lister.from_elements(elements, maxlen)
@@ -44,8 +46,10 @@ class TypeDB:
     def reset(cls):
         cls.types = get_builtins()
 
+
 def get_type_by_value(value) -> basics.InferredType:
     return TypeDB.get_type_by_value(value)
+
 
 def get_type_by_name(text: str) -> basics.InferredType:
     return TypeDB.get_type_by_name(text)

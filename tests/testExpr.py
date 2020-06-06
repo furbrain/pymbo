@@ -1,5 +1,4 @@
 import unittest
-import typed_ast.ast3 as ast
 
 from exceptions import UnimplementedFeature
 from parser import get_expression_code
@@ -9,7 +8,7 @@ BASIC_TESTS = {
     "'a'": ("str", '"a"'),
     '"a"': ("str", '"a"'),
     'b"a"': ("str", '"a"'),
-    "1":   ("int", "1"),
+    "1": ("int", "1"),
     "2.3": ("float", "2.3"),
     "5.0": ("float", "5.0"),
     "True": ("bool", "true"),
@@ -46,6 +45,7 @@ COMP_NOT_IMPLEMENTED = (
     "y is True",
     "2 < 5 < 7"
 )
+
 
 class TestExpressions(unittest.TestCase):
     def run_passing_tests(self, params):

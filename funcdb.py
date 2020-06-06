@@ -7,7 +7,7 @@ from parser.functions import FunctionImplementation
 from itypes import InferredType
 
 TypeSig = Sequence[InferredType]
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
 
@@ -15,7 +15,7 @@ class FuncDB:
     def __init__(self, module: "ModuleParser"):
         self.module = module
         self.func_nodes: Dict[str, ast.FunctionDef] = {}
-        self.func_implementations: Dict[str, Dict[str, FunctionImplementation]] = defaultdict(dict)
+        self.func_implementations: Dict[str, Dict[TypeSig, FunctionImplementation]] = defaultdict(dict)
 
     def get_func(self, name: str, typesig: TypeSig) -> Optional[FunctionImplementation]:
         if name in self.func_nodes:
@@ -31,11 +31,11 @@ class FuncDB:
             return name
         else:
             args = [str(x).strip("<>") for x in typesig]
-            return name+"__"+'_'.join(args)
+            return name + "__" + '_'.join(args)
 
     def get_signature(self, name: str, typesig: TypeSig):
         func = self.get_func(name, typesig)
-        text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args)+")"
+        text = func.retval.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args) + ")"
         return text
 
     def get_implementation(self, name: str, typesig: TypeSig, regenerate=False):

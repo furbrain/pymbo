@@ -2,6 +2,7 @@ from exceptions import InvalidOperation
 from tests.utils import PymboTest
 
 
+# noinspection PyPep8Naming
 class TestBasics(PymboTest):
     def test_basic(self):
         TEST_CODE = """
@@ -35,7 +36,6 @@ class TestBasics(PymboTest):
                 return 3
         """
         self.translate(TEST_CODE)
-
 
     def test_nested_if(self):
         TEST_CODE = """

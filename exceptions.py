@@ -1,9 +1,13 @@
 import typed_ast.ast3 as ast
+
+
 class PymboError(Exception):
     """Base error class for Pymbo"""
 
+
 class TranslationError(PymboError):
     pass
+
 
 class UnhandledNode(TranslationError):
     def __init__(self, node: ast.AST) -> None:
@@ -14,10 +18,15 @@ class UnhandledNode(TranslationError):
 class UnimplementedFeature(TranslationError):
     pass
 
+class StaticTypeError(TranslationError):
+    pass
+
+
 class IdentifierNotFound(TranslationError):
     def __init__(self, node: ast.AST) -> None:
         message = "Identifier '{}' not found".format(node.id)
         super().__init__(message)
+
 
 class InvalidOperation(TranslationError):
     pass

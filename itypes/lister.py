@@ -60,7 +60,7 @@ class Lister(InferredType):
         return cls(tp, maxlen)
 
     def get_item(self, index_type):
-        if index_type!="int":
+        if index_type != "int":
             raise ValueError("Index type should be an integer")
         self.functions.add("get_item")
         return Code(tp=self.tp, code=f"{self.prefix()}__get_item")

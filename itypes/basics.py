@@ -1,7 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 import utils
-from exceptions import PymboError, InvalidOperation
+from exceptions import InvalidOperation
 
 
 def get_type_name(obj):
@@ -13,8 +13,9 @@ def get_type_name(obj):
         else:
             return '{}'.format(type(obj).__name__)
 
+
 def combine_types(a: "InferredType", b: "InferredType"):
-    if a==b:
+    if a == b:
         return a
     if a == "int" and b == "float":
         return b
@@ -22,6 +23,8 @@ def combine_types(a: "InferredType", b: "InferredType"):
         return a
     return UnknownType()
 
+
+# noinspection PyMethodMayBeStatic
 class InferredType(metaclass=ABCMeta):
     @classmethod
     def from_type(cls, object_type):
@@ -35,6 +38,7 @@ class InferredType(metaclass=ABCMeta):
         self.items = None
         self.name = ""
         self.docstring = ""
+        self.type = None
 
     @utils.do_not_recurse('...')
     def __str__(self):
@@ -85,7 +89,6 @@ class InferredType(metaclass=ABCMeta):
 
     def set_item(self, index_type, value_type):
         raise InvalidOperation(f"Set item not valid for {self.name}")
-
 
     def add_item(self, item):
         raise InvalidOperation(f"Set item not valid for {self.name}")

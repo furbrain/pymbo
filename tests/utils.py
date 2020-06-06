@@ -11,16 +11,17 @@ from itypes.typedb import TypeDB
 class PymboTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        dirPath = os.path.dirname(os.path.realpath(__file__))
-        result_dir = os.path.join(dirPath,"results")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        result_dir = os.path.join(dir_path, "results")
         try:
             os.mkdir(result_dir)
         except FileExistsError:
             pass
-        cls.results_file = open(os.path.join(result_dir, cls.__name__ + ".c"),"w")
+        cls.results_file = open(os.path.join(result_dir, cls.__name__ + ".c"), "w")
 
     @classmethod
     def tearDownClass(cls) -> None:
+        # noinspection PyUnresolvedReferences
         cls.results_file.close()
 
     def setUp(self) -> None:
@@ -28,13 +29,13 @@ class PymboTest(unittest.TestCase):
 
     def translate(self, text: str) -> str:
         text = textwrap.dedent(text)
-        commented_original = textwrap.indent(self.id()+'\n\n'+text, "// ")
+        commented_original = textwrap.indent(self.id() + '\n\n' + text, "// ")
         self.results_file.write(commented_original)
         compiled_code = pymbo.convert(textwrap.dedent(text))
-        self.results_file.write(compiled_code+'\n/*======================*/\n')
+        self.results_file.write(compiled_code + '\n/*======================*/\n')
         return compiled_code
 
     def check_raises(self, text: str, exc: Type[Exception]):
         text = textwrap.dedent(text)
         with self.assertRaises(exc):
-            compiled_code = pymbo.convert(textwrap.dedent(text))
+            pymbo.convert(textwrap.dedent(text))

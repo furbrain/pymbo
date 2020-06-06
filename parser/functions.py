@@ -6,11 +6,12 @@ from parser import get_expression_code
 from itypes import get_type_by_value
 from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from funcdb import TypeSig
     from parser.module import ModuleParser
 
 
+# noinspection PyPep8Naming
 class FunctionImplementation(ast.NodeVisitor):
     def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser"):
         self.module = module
@@ -21,15 +22,15 @@ class FunctionImplementation(ast.NodeVisitor):
         self.args = []
         for arg, arg_type in zip(node.args.args, type_sig):
             self.context[arg.arg] = Code(arg_type, is_arg=True, code=arg.arg)
-            self.args += [arg_type.as_c_type() + " "+ arg.arg]
+            self.args += [arg_type.as_c_type() + " " + arg.arg]
         self.indent = 2
         self.type_sig = type_sig
         self.primary_node = node
         self.generate_code()
 
     def generate_code(self):
-        self.body=""
-        self.indent=2
+        self.body = ""
+        self.indent = 2
         for n in self.primary_node.body:
             self.visit(n)
 
@@ -40,13 +41,13 @@ class FunctionImplementation(ast.NodeVisitor):
     def visit_If(self, node: ast.If) -> None:
         test = self.get_code(node.test)
         self.start_line("if ({}) {{\n".format(test.code))
-        self.indent +=2
+        self.indent += 2
         for n in node.body:
             self.visit(n)
         if node.orelse:
-            self.indent -=2
+            self.indent -= 2
             self.start_line("} else {\n")
-            self.indent +=2
+            self.indent += 2
             for n in node.orelse:
                 self.visit(n)
         self.indent -= 2
@@ -54,7 +55,7 @@ class FunctionImplementation(ast.NodeVisitor):
 
     def visit_Return(self, node: ast.Return) -> None:
         result = self.get_code(node.value)
-        self.retval = result.tp #FIXME add error checking code here for multiple retvals
+        self.retval = result.tp  # FIXME add error checking code here for multiple retvals
         self.start_line("return " + result.code + ";\n")
 
     def visit_Expr(self, node: ast.Expr) -> None:
@@ -70,14 +71,14 @@ class FunctionImplementation(ast.NodeVisitor):
                     raise StaticTypeError(f"Assigning {right.tp} to {left.tp}")
                 self.start_line("{} = {};\n".format(left.code, right.as_value().code))
             elif isinstance(n, ast.Subscript):
-                value= self.get_code(n.value)
+                value = self.get_code(n.value)
                 slice_type = type(n.slice).__name__
                 if slice_type == "Index":
                     index = self.get_code(n.slice.value)
                     res_code = value.tp.set_item(index.tp, right.tp)
                     self.start_line(f"{res_code}({value.as_pointer().code}, {index.code}, {right.code});\n")
                 else:
-                    raise UnhandledNode("Slices not yet implemented")
+                    raise UnimplementedFeature("Slices not yet implemented")
 
     def get_code(self, node: ast.AST) -> Code:
         return get_expression_code(node, self.module, self.context)
@@ -90,4 +91,3 @@ class FunctionImplementation(ast.NodeVisitor):
         for name, var in self.context.locals():
             text += f"  {var.tp.as_c_type()} {name};\n"
         return text
-

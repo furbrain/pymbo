@@ -1,7 +1,3 @@
-import typed_ast.ast3 as ast
-
-import funcdb
-
 from parser.module import ModuleParser
 
 

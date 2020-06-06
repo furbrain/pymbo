@@ -1,25 +1,28 @@
+from typing import TYPE_CHECKING, Optional
+
 import typed_ast.ast3 as ast
-import warnings
 
 import exceptions
-from itypes import InferredType
-from itypes.lister import Lister
-from exceptions import UnhandledNode, UnimplementedFeature
 import itypes
-from typing import TYPE_CHECKING
-from itypes.typedb import TypeDB
 from context import Context, Code
+from exceptions import UnhandledNode, UnimplementedFeature
+from itypes import InferredType
+from itypes.typedb import TypeDB
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
-def get_expression_code(expression, module: "ModuleParser", context: Context) -> Code:
+
+def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]) -> Code:
     if isinstance(expression, str):
         expression = ast.parse(expression)
+    if context is None:
+        context = module.context
     parser = ExpressionParser(module, context)
     return parser.visit(expression)
 
 
+# noinspection PyPep8Naming,PyMethodMayBeStatic
 class ExpressionParser(ast.NodeVisitor):
     FLOAT = TypeDB.get_type_by_name('float')
     INT = TypeDB.get_type_by_name('int')
@@ -38,12 +41,12 @@ class ExpressionParser(ast.NodeVisitor):
         "Div": "/"
     }
     COMPS_MAP = {
-        "Eq"   :"==",
-        "NotEq":"!=",
-        "Lt"   :"<",
-        "LtE"  :"<=",
-        "Gt"   :">",
-        "GtE"  :">=",
+        "Eq": "==",
+        "NotEq": "!=",
+        "Lt": "<",
+        "LtE": "<=",
+        "Gt": ">",
+        "GtE": ">=",
     }
 
     def __init__(self, module: "ModuleParser", context: "Context"):
@@ -55,7 +58,7 @@ class ExpressionParser(ast.NodeVisitor):
         pass
 
     def visit_Num(self, node):
-        return Code(tp=TypeDB.get_type_by_value(node.n),code=str(node.n))
+        return Code(tp=TypeDB.get_type_by_value(node.n), code=str(node.n))
 
     def visit_Str(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + node.s + '"')
@@ -136,7 +139,6 @@ class ExpressionParser(ast.NodeVisitor):
             code = f"{value.code}.{node.attr}"
         return Code(tp=value.tp.get_attr(node.attr), code=code)
 
-
     def visit_Expr(self, node):
         return self.visit(node.value)
 
@@ -203,7 +205,7 @@ class ExpressionParser(ast.NodeVisitor):
             accessor = value.tp.get_item(index.tp)
             return Code(tp=accessor.tp, code=f"{accessor.code}({value.as_pointer().code}, {index.code})")
         else:
-            raise UnhandledNode("Slices not yet implemented")
+            raise UnimplementedFeature("Slices not yet implemented")
 
     def visit_Compare(self, node: ast.AST):
         if len(node.ops) > 1:

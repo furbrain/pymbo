@@ -1,5 +1,3 @@
-import unittest
-import pymbo
 from tests.utils import PymboTest
 
 TEST_CODE = """
