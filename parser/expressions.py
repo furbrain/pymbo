@@ -123,7 +123,7 @@ class ExpressionParser(ast.NodeVisitor):
             func_name = func.code
         if func_type is None:
             raise exceptions.IdentifierNotFound(node.func)
-        return Code(tp=func_type.retval, code=f"{func_name}({', '.join(args_code)})")
+        return Code(tp=func_type.retval.tp, code=f"{func_name}({', '.join(args_code)})")
 
     # def visit_Lambda(self, node):
     #     arg_names = [arg.arg for arg in node.args.args]

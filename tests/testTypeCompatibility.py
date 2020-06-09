@@ -7,6 +7,7 @@ class TestTypeCompatibility(PymboTest):
             def main():
                 a=1
                 a=1.1
+                return 1
         """
         self.translate(code)
 
@@ -15,15 +16,20 @@ class TestTypeCompatibility(PymboTest):
             def main():
                 a=1.1
                 a=1
+                return 1
         """
         self.translate(code)
 
     def test_mixed_returns(self):
         code = """
-            def main():
+            def g():
                 if True:
                     return 1
                 else:
-                    return 1.1    
+                    return 1.1
+            
+            def main():
+                g()
+                return True    
         """
         self.translate(code)

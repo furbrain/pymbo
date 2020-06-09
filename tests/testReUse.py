@@ -7,11 +7,11 @@ from tests.utils import PymboTest
 TEST_CODE = """
 def adder(a,b):
     return a + b
-    
+
 def main():
     adder(1,2)
     adder(2.3, 4.5)
-    return 1 + 2
+    return 1
 """
 
 

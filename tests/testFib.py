@@ -8,8 +8,8 @@ def fib(a,b):
         return a-b
 
 def main():
-    fib(1,2)
-    return 0
+    c = fib(1,2)
+    return 1
 """
 
 

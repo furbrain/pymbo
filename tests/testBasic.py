@@ -7,14 +7,14 @@ class TestBasics(PymboTest):
     def test_basic(self):
         TEST_CODE = """
         def main():
-            return 0
+            return True
         """
         self.translate(TEST_CODE)
 
     def test_addition(self):
         TEST_CODE = """
         def main():
-            return 1+2
+            return 1+0
         """
         self.translate(TEST_CODE)
 
@@ -44,7 +44,7 @@ class TestBasics(PymboTest):
                 if False:
                     return 2
                 else:
-                    return 3
+                    return 1
             return 4
         """
         self.translate(TEST_CODE)

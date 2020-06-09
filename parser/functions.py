@@ -101,5 +101,6 @@ class FunctionImplementation(ast.NodeVisitor):
     def get_variable_definitions(self):
         text = ""
         for name, var in self.context.locals():
-            text += f"  {var.tp.as_c_type()} {name};\n"
+            if not var.is_arg:
+                text += f"  {var.tp.as_c_type()} {name};\n"
         return text

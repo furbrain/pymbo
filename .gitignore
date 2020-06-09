@@ -1,3 +1,4 @@
 /tests/results/
 /htmlcov/
 /.coverage
+/tests/build/

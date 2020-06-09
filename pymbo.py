@@ -1,8 +1,15 @@
+from textwrap import dedent
+
 from parser.module import ModuleParser
+
+INCLUDES = """
+    #include <stdint.h>
+    #include <stdbool.h>
+    #include <string.h>
+"""
 
 
 def convert(code: str) -> str:
     p = ModuleParser()
     p.parse_string(code)
-    return p.wrap_exception(p.create_code, include_type_funcs=True)
-
+    return dedent(INCLUDES) + p.wrap_exception(p.create_code, include_type_funcs=True)

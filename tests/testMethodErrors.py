@@ -6,8 +6,8 @@ class TestMethodErrors(PymboTest):
     def test_append_works(self):
         code = """
         def main():
-            a = [1]
-            a.append(2)
+            a = [4]
+            a.append(1)
             return a[1]
         """
         self.translate(code)

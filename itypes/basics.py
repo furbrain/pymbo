@@ -1,4 +1,6 @@
+import os
 from abc import ABCMeta
+from textwrap import dedent
 from typing import TYPE_CHECKING
 
 import utils
@@ -53,7 +55,10 @@ class InferredType(metaclass=ABCMeta):
         self.items = None
         self.name = ""
         self.docstring = ""
+        self.definition = ""
         self.type = None
+        self.functions = set()
+        self.c_funcs = {}
 
     @utils.do_not_recurse('...')
     def __str__(self):
@@ -79,8 +84,35 @@ class InferredType(metaclass=ABCMeta):
     def __hash__(self):
         return hash(self.name)
 
-    def definition(self) -> str:
-        return ""
+    def prefix(self):
+        return self.as_c_type()
+
+    def load_methods(self, fname: str):
+        from .functions import NativeMethod, InlineNativeMethod
+        c_func_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../c_functions"))
+        with open(os.path.join(c_func_dir, fname)) as f:
+            c_data = eval(f.read(), {"__builtins__": None})
+        self.definition = c_data["def"]
+        self.definition = eval(f'f"""{self.definition}"""')
+        self.c_funcs = {}
+        for name, func in c_data["methods"].items():
+            vals, args, retval = self.get_vals_args_and_retval(func)
+            self.c_funcs[name] = NativeMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
+        for name, func in c_data["inlines"].items():
+            vals, args, retval = self.get_vals_args_and_retval(func)
+            self.c_funcs[name] = InlineNativeMethod(f'{self.prefix()}__{name}', args, retval, func['template'])
+
+    def get_vals_args_and_retval(self, func):
+        from itypes.typedb import TypeDB
+        vals = {name: dedent(eval(f'f"""{val}"""', {'self': self})) for name, val in func.items() if
+                name != "template"}
+        args = [arg.strip() for arg in vals['args'].split(',')]
+        if args != ['']:
+            args = [TypeDB.get_type_by_name(arg) for arg in args]
+        else:
+            args = []
+        retval = TypeDB.get_type_by_name(vals['retval'])
+        return vals, args, retval
 
     def has_attr(self, attr: str) -> bool:
         return attr in self.attrs
@@ -94,6 +126,7 @@ class InferredType(metaclass=ABCMeta):
         from itypes.functions import FunctionType
         tp = self.get_attr(attr)
         if isinstance(tp, FunctionType):
+            self.functions.add(attr)
             return tp
         raise InvalidOperation(f"Attribute {attr} is not a method")
 
@@ -105,15 +138,6 @@ class InferredType(metaclass=ABCMeta):
             self.attrs[attr] = self.attrs[attr].add_type(typeset)
         else:
             self.attrs[attr] = typeset
-
-    def get_item(self, index_type):
-        raise InvalidOperation(f"get item not valid for {self.name}")
-
-    def set_item(self, index_type, value_type):
-        raise InvalidOperation(f"Set item not valid for {self.name}")
-
-    def add_item(self, item):
-        raise InvalidOperation(f"Set item not valid for {self.name}")
 
     def get_all_attrs(self):
         return self.attrs.copy()
@@ -134,16 +158,15 @@ class InferredType(metaclass=ABCMeta):
         raise NotImplementedError("Not able to create c type for %s" % self.name)
 
     def get_type_def(self) -> str:
-        """get the type definitions"""
-        return ""
+        return self.definition
 
-    def get_definitions(self) -> str:
-        """this returns all the c code needed to go in a header"""
-        return ""
+    def get_definitions(self):
+        funcs_with_defs = [self.c_funcs[f] for f in self.functions if hasattr(self.c_funcs[f], "definition")]
+        return "".join(f.definition for f in funcs_with_defs)
 
-    def get_implementations(self) -> str:
-        """this returns all the c code needed to go in a header"""
-        return ""
+    def get_implementations(self):
+        funcs_with_imps = [self.c_funcs[f] for f in self.functions if hasattr(self.c_funcs[f], "implementation")]
+        return "".join(f.implementation for f in funcs_with_imps)
 
 
 class UnknownType(InferredType):

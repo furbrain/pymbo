@@ -7,13 +7,14 @@ class TestLists(PymboTest):
         code = """
         def main():
             a = [1,2,3,4]
+            return True
         """
         self.translate(code)
 
     def test_get(self):
         code = """
         def main():
-            a = [1,2,3,4]
+            a = [1,2,1,4]
             return a[2]
         """
         self.translate(code)
@@ -22,7 +23,7 @@ class TestLists(PymboTest):
         code = """
         def main():
             a = [1,2,3,4]
-            a[3] = 5
+            a[3] = 1
             return a[3]
         """
         self.translate(code)
@@ -31,7 +32,7 @@ class TestLists(PymboTest):
         code = """
         def main():
             a = [1,2,3,4]
-            a.append(5)
+            a.append(1)
             return a[4]
         """
         self.translate(code)
@@ -66,5 +67,6 @@ class TestLists(PymboTest):
         def main():
             a = [1,2,3,4]
             b= a.len()
+            return b - 3
         """
         self.translate(code)
