@@ -24,7 +24,7 @@ class FunctionImplementation(ast.NodeVisitor):
         self.args = []
         for arg, arg_type in zip(node.args.args, type_sig):
             self.context[arg.arg] = Code(arg_type, is_arg=True, code=arg.arg)
-            self.args += [arg_type.as_c_type() + " " + arg.arg]
+            self.args += [arg_type.c_type + " " + arg.arg]
         self.indent = 2
         self.type_sig = type_sig
         self.primary_node = node
@@ -102,5 +102,5 @@ class FunctionImplementation(ast.NodeVisitor):
         text = ""
         for name, var in self.context.locals():
             if not var.is_arg:
-                text += f"  {var.tp.as_c_type()} {name};\n"
+                text += f"  {var.tp.c_type} {name};\n"
         return text

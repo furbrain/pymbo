@@ -58,6 +58,7 @@ class InferredType(metaclass=ABCMeta):
         self.functions = set()
         self.methods_loaded = False
         self.spec_file = ""
+        self.c_type = ""
 
     def __str__(self):
         return self.name
@@ -82,7 +83,7 @@ class InferredType(metaclass=ABCMeta):
         return hash(self.name)
 
     def prefix(self):
-        return self.as_c_type()
+        return self.c_type
 
     def load_methods(self):
         if self.methods_loaded or self.spec_file == "":
@@ -144,21 +145,6 @@ class InferredType(metaclass=ABCMeta):
 
     def get_all_attrs(self):
         return self.attrs.copy()
-
-    def as_c_type(self):
-        if self.name is None:
-            return "void"
-        if self.name == "None":
-            return "void"
-        if self.name == "int":
-            return "int"
-        if self.name == "float":
-            return "double"
-        if self.name == "str":
-            return "char*"
-        if self.name == "bool":
-            return "bool"
-        raise NotImplementedError("Not able to create c type for %s" % self.name)
 
     def get_type_def(self) -> str:
         self.load_methods()

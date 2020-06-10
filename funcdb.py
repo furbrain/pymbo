@@ -35,7 +35,7 @@ class FuncDB:
 
     def get_signature(self, name: str, typesig: TypeSig):
         func = self.get_func(name, typesig)
-        text = func.retval.tp.as_c_type() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args) + ")"
+        text = func.retval.tp.c_type + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args) + ")"
         return text
 
     def get_implementation(self, name: str, typesig: TypeSig, regenerate=False):

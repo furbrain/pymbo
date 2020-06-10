@@ -16,14 +16,10 @@ class Lister(InferredType):
         self.c_type = f"struct {self.prefix()}"
 
     def prefix(self):
-        return f"list{self.maxlen:d}__{self.tp.as_c_type()}"
-
-    def as_c_type(self):
-        """get the c_type for use in function params etc"""
-        return f"struct {self.prefix()}"
+        return f"list{self.maxlen:d}__{self.tp.c_type}"
 
     def as_literal(self, values: str):
-        return f"({self.as_c_type()}){{{len(values)}, {{{', '.join(values)}}}}}"
+        return f"({self.c_type}){{{len(values)}, {{{', '.join(values)}}}}}"
 
     @classmethod
     def from_elements(cls, types: typing.List[InferredType], maxlen: int) -> "Lister":
