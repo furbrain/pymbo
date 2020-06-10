@@ -11,6 +11,14 @@ class TestLists(PymboTest):
         """
         self.translate(code)
 
+    def test_type_combining(self):
+        code = """
+        def main():
+            a = [1,2.0,3,4.0]
+            return True
+        """
+        self.translate(code)
+
     def test_get(self):
         code = """
         def main():
@@ -59,6 +67,13 @@ class TestLists(PymboTest):
         def main():
             a = [1,2,3,4]
             a[2] = "a"
+        """
+        self.check_raises(code, StaticTypeError)
+
+    def test_raises_error_with_incompatible_elements(self):
+        code = """
+        def main():
+            a = [2.0, "a"]
         """
         self.check_raises(code, StaticTypeError)
 

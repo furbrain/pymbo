@@ -31,7 +31,7 @@
         "__mod__": {
             "args": "{self}",
             "retval": "{self}",
-            "template": "({obj.as_value()} %% {args[0].as_value()})"
+            "template": "({obj.as_value()} % {args[0].as_value()})"
         },
         "__lshift__": {
             "args": "{self}",

@@ -6,6 +6,7 @@ import exceptions
 import itypes
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError
+from itypes import combine_types
 from itypes.functions import FunctionType
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
@@ -119,9 +120,7 @@ class ExpressionParser(ast.NodeVisitor):
             func_type = func.tp.get_method(node.func.attr)
             return func_type.get_code(func, args)
         else:
-            func = self.visit(node.func)
-            func_type = func.tp
-            func_name = func.code
+            raise UnimplementedFeature("running function from subscripted arg??")
         if func_type is None:
             raise exceptions.IdentifierNotFound(node.func)
         return Code(tp=func_type.retval.tp, code=f"{func_name}({', '.join(args_code)})")
@@ -165,23 +164,6 @@ class ExpressionParser(ast.NodeVisitor):
                 raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
         return result
 
-    def get_binary_op_type(self, left, right, op):
-        if self.both_args_numeric(left, right):
-            return itypes.combine_types(left, right)
-        if left == self.STR and right == self.STR and op == "Add":
-            return left
-        if left == self.STR and right == self.INT and op == "Mult":
-            return left
-        if left == self.STR and op == "Mod":
-            return left
-        return TypeError
-
-    def both_args_numeric(self, left, right):
-        return left in self.NUMERIC_TYPES and right in self.NUMERIC_TYPES
-
-    def both_args_strings(self, left, right):
-        return left == self.STR and right == self.STR
-
     # def visit_UnaryOp(self, node):
     #     op = type(node.op).__name__
     #     if op == "Not":
@@ -216,10 +198,12 @@ class ExpressionParser(ast.NodeVisitor):
         op = type(node.ops[0]).__name__
         if op not in self.COMPS_MAP:
             raise UnimplementedFeature("Comparator %s not yet implemented" % op, node)
-        left = self.visit(node.left).code
-        right = self.visit(node.comparators[0]).code
+        # check types are compatible
+        left = self.visit(node.left)
+        right = self.visit(node.comparators[0])
+        combine_types(left.tp, right.tp)
 
-        code = "(%s %s %s)" % (left, self.COMPS_MAP[op], right)
+        code = f"({left.code} {self.COMPS_MAP[op]} {right.code})"
         return Code(tp=self.BOOL, code=code)
 
     # def visit_ListComp(self, node):

@@ -1,5 +1,5 @@
 import pymbo
-from exceptions import UnimplementedFeature
+from exceptions import UnimplementedFeature, StaticTypeError
 from parser import get_expression_code
 from parser.module import ModuleParser
 from tests.utils import PymboTest
@@ -18,9 +18,13 @@ BASIC_TESTS = {
 SIMPLE_OPS = {
     "1+2": ("int", '(1 + 2)'),
     "1+2.0": ("float", '(1 + 2.0)'),
+    "1.0+2": ("float", '(1.0 + 2)'),
     "1 * 2": ("int", '(1 * 2)'),
     "4 / 2": ("float", '((float) 4 / 2)'),
-    "5 - 3": ("int", '(5 - 3)')
+    "5 - 3": ("int", '(5 - 3)'),
+    "7 % 3": ("int", '(7 % 3)'),
+    "3 << 2": ("int", '(3 << 2)'),
+    "7 >> 2": ("int", '(7 >> 2)'),
 }
 
 IF_EXPR = {
@@ -46,6 +50,11 @@ COMP_NOT_IMPLEMENTED = (
     "2 < 5 < 7"
 )
 
+COMP_TYPE_ERRORS = (
+    '"a" < 2',
+    '"a" if 3>2 else 2'
+)
+
 
 class TestExpressions(PymboTest):
     def run_passing_tests(self, params):
@@ -65,9 +74,9 @@ class TestExpressions(PymboTest):
                     test_code = f"{pymbo.INCLUDES}\nint main(){{\n    return {results.code}=={expected_result};}}"
                     self.compile_and_run(test_code)
 
-    def run_not_implemented_tests(self, params):
+    def run_failing_tests(self, params, expected_exception):
         for code in params:
-            with self.assertRaises(UnimplementedFeature):
+            with self.assertRaises(expected_exception):
                 get_expression_code(code, ModuleParser(), None)
 
     def test_basics(self):
@@ -87,4 +96,7 @@ class TestExpressions(PymboTest):
         self.compile_and_check_expressions(BASIC_TESTS)
 
     def test_comp_fails(self):
-        self.run_not_implemented_tests(COMP_NOT_IMPLEMENTED)
+        self.run_failing_tests(COMP_NOT_IMPLEMENTED, UnimplementedFeature)
+
+    def test_comp_type_errors(self):
+        self.run_failing_tests(COMP_TYPE_ERRORS, StaticTypeError)

@@ -1,3 +1,4 @@
+from itypes import TypeDB
 from tests.utils import PymboTest
 
 
@@ -33,3 +34,15 @@ class TestTypeCompatibility(PymboTest):
                 return True    
         """
         self.translate(code)
+
+
+class TestTypeEquivalence(PymboTest):
+    def test_ints(self):
+        a = TypeDB.get_type_by_value(1)
+        b = TypeDB.get_type_by_value(int)
+        c = TypeDB.get_type_by_name("int")
+        self.assertEqual(a, b)
+        self.assertEqual(a, c)
+        self.assertEqual(b, c)
+        self.assertEqual(a, a)
+        self.assertEqual(a, int)

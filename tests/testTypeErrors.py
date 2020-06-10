@@ -1,4 +1,5 @@
 from exceptions import TranslationError, UnhandledNode, StaticTypeError
+from itypes import TypeDB
 from tests.utils import PymboTest
 
 
@@ -65,3 +66,7 @@ class TestTypeErrors(PymboTest):
             del b
         """
         self.check_raises(code, UnhandledNode)
+
+    def test_create_weird_type_fails(self):
+        with self.assertRaises(AttributeError):
+            TypeDB.get_type_by_name("fred")

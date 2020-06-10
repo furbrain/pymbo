@@ -1,3 +1,3 @@
-from .basics import InferredType, UnknownType, combine_types, can_promote
+from .basics import InferredType, combine_types
 from .functions import NativeMethod
 from .typedb import TypeDB

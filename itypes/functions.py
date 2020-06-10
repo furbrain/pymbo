@@ -2,7 +2,7 @@ from typing import List
 
 from context import Code
 from exceptions import StaticTypeError
-from . import InferredType, can_promote
+from . import InferredType
 
 
 class FunctionType(InferredType):
@@ -21,7 +21,7 @@ class FunctionType(InferredType):
         if len(args) > len(self.args):
             raise StaticTypeError(f"Too many arguments (needs {len(self.args)}")
         for i, (supplied, needed) in enumerate(zip(args, self.args)):
-            if not can_promote(supplied.tp, needed):
+            if not needed.can_coerce_from(supplied.tp):
                 raise StaticTypeError(f"Argument {i + 1} should be {needed}, but is {supplied.tp} ")
 
 

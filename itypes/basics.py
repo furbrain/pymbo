@@ -3,20 +3,10 @@ from abc import ABCMeta
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
-from exceptions import InvalidOperation
+from exceptions import InvalidOperation, StaticTypeError
 
 if TYPE_CHECKING:  # pragma: no cover
     from itypes.functions import FunctionType
-
-
-def can_promote(src: "InferredType", dest: "InferredType"):
-    if src == dest:
-        return True
-    if src == "int":
-        if dest == "float":
-            return True
-    return False
-
 
 def get_type_name(obj):
     if isinstance(obj, type):
@@ -29,25 +19,15 @@ def get_type_name(obj):
 
 
 def combine_types(a: "InferredType", b: "InferredType"):
-    if a == b:
+    if a.can_coerce_from(b):
         return a
-    if a == "int" and b == "float":
+    if b.can_coerce_from(a):
         return b
-    if b == "int" and a == "float":
-        return a
-    return UnknownType()
-
+    raise StaticTypeError(f"Incompatible types: {a} {b}")
 
 # noinspection PyMethodMayBeStatic
 class InferredType(metaclass=ABCMeta):
     pass_by_value = True
-
-    @classmethod
-    def from_type(cls, object_type):
-        self = cls()
-        self.type = object_type
-        self.name = get_type_name(object_type)
-        return self
 
     def __init__(self):
         self.attrs = {}
@@ -158,14 +138,5 @@ class InferredType(metaclass=ABCMeta):
         funcs_with_imps = [self.attrs[f] for f in self.functions if hasattr(self.attrs[f], "implementation")]
         return "".join(f.implementation for f in funcs_with_imps)
 
-
-class UnknownType(InferredType):
-    def __init__(self, name=None):
-        super().__init__()
-        if name:
-            self.name = "Unknown: %s" % name
-            self.type = name
-        else:
-            self.name = "Unknown"
-            self.type = ""
-        raise ValueError("Shouldn't get here")
+    def can_coerce_from(self, other: "InferredType") -> bool:
+        return self == other

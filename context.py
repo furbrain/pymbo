@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from exceptions import StaticTypeError
-from itypes import InferredType, can_promote
+from itypes import InferredType
 
 
 class Code:
@@ -28,9 +28,9 @@ class Code:
         if self.tp is None:
             self.tp = tp
             return
-        if can_promote(tp, self.tp):
+        if self.tp.can_coerce_from(tp):
             return
-        elif can_promote(self.tp, tp):
+        elif tp.can_coerce_from(self.tp):
             self.tp = tp
             return
         # not been able to match types - raise error

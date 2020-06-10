@@ -3,15 +3,15 @@ from typing import Optional, Dict, List
 from itypes import InferredType
 from itypes.lister import Lister
 from . import basics
-from .primitives import IntType, FloatType
+from .primitives import IntType, FloatType, BoolType, StrType, NoneType
 
 
 def get_builtins():
-    types: Dict[str, InferredType] = {'int': IntType(), 'float': FloatType()}
-    for tp in (bool, str):
-        types[tp.__name__] = InferredType.from_type(tp)
-    types["None"] = InferredType.from_type(type(None))
-    types["None"].name = "None"
+    types: Dict[str, InferredType] = {'int': IntType(),
+                                      'float': FloatType(),
+                                      'bool': BoolType(),
+                                      'str': StrType(),
+                                      'None': NoneType()}
     types["bytes"] = types["str"]
     return types
 
@@ -36,10 +36,6 @@ class TypeDB:
     def get_type_by_value(cls, value):
         type_name = basics.get_type_name(value)
         return cls.get_type_by_name(type_name)
-
-    @classmethod
-    def classiter(cls):
-        return iter(cls.types.values())
 
     @classmethod
     def reset(cls):
