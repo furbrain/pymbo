@@ -3,7 +3,6 @@ from abc import ABCMeta
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
-import utils
 from exceptions import InvalidOperation
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -54,17 +53,15 @@ class InferredType(metaclass=ABCMeta):
         self.attrs = {}
         self.items = None
         self.name = ""
-        self.docstring = ""
         self.definition = ""
         self.type = None
         self.functions = set()
-        self.c_funcs = {}
+        self.methods_loaded = False
+        self.spec_file = ""
 
-    @utils.do_not_recurse('...')
     def __str__(self):
         return self.name
 
-    @utils.do_not_recurse('...')
     def __repr__(self):
         return str(self)
 
@@ -87,20 +84,22 @@ class InferredType(metaclass=ABCMeta):
     def prefix(self):
         return self.as_c_type()
 
-    def load_methods(self, fname: str):
+    def load_methods(self):
+        if self.methods_loaded or self.spec_file == "":
+            return
         from .functions import NativeMethod, InlineNativeMethod
         c_func_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../c_functions"))
-        with open(os.path.join(c_func_dir, fname)) as f:
+        with open(os.path.join(c_func_dir, self.spec_file)) as f:
             c_data = eval(f.read(), {"__builtins__": None})
         self.definition = c_data["def"]
         self.definition = eval(f'f"""{self.definition}"""')
-        self.c_funcs = {}
         for name, func in c_data["methods"].items():
             vals, args, retval = self.get_vals_args_and_retval(func)
-            self.c_funcs[name] = NativeMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
+            self.attrs[name] = NativeMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
         for name, func in c_data["inlines"].items():
             vals, args, retval = self.get_vals_args_and_retval(func)
-            self.c_funcs[name] = InlineNativeMethod(f'{self.prefix()}__{name}', args, retval, func['template'])
+            self.attrs[name] = InlineNativeMethod(f'{self.prefix()}__{name}', args, retval, func['template'])
+        self.methods_loaded = True
 
     def get_vals_args_and_retval(self, func):
         from itypes.typedb import TypeDB
@@ -115,9 +114,11 @@ class InferredType(metaclass=ABCMeta):
         return vals, args, retval
 
     def has_attr(self, attr: str) -> bool:
+        self.load_methods()
         return attr in self.attrs
 
     def get_attr(self, attr: str) -> "InferredType":
+        self.load_methods()
         if attr not in self.attrs:
             raise InvalidOperation(f"Get attr {attr} not valid for {self.name}")
         return self.attrs[attr]
@@ -131,9 +132,11 @@ class InferredType(metaclass=ABCMeta):
         raise InvalidOperation(f"Attribute {attr} is not a method")
 
     def set_attr(self, attr: str, tp: "InferredType"):
+        self.load_methods()
         self.attrs[attr] = tp
 
     def add_attr(self, attr: str, typeset: "InferredType"):
+        self.load_methods()
         if attr in self.attrs:
             self.attrs[attr] = self.attrs[attr].add_type(typeset)
         else:
@@ -158,14 +161,15 @@ class InferredType(metaclass=ABCMeta):
         raise NotImplementedError("Not able to create c type for %s" % self.name)
 
     def get_type_def(self) -> str:
+        self.load_methods()
         return self.definition
 
     def get_definitions(self):
-        funcs_with_defs = [self.c_funcs[f] for f in self.functions if hasattr(self.c_funcs[f], "definition")]
+        funcs_with_defs = [self.attrs[f] for f in self.functions if hasattr(self.attrs[f], "definition")]
         return "".join(f.definition for f in funcs_with_defs)
 
     def get_implementations(self):
-        funcs_with_imps = [self.c_funcs[f] for f in self.functions if hasattr(self.c_funcs[f], "implementation")]
+        funcs_with_imps = [self.attrs[f] for f in self.functions if hasattr(self.attrs[f], "implementation")]
         return "".join(f.implementation for f in funcs_with_imps)
 
 

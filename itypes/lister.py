@@ -12,8 +12,8 @@ class Lister(InferredType):
         self.tp = tp
         self.maxlen = maxlen
         self.name = f"[{tp.name}:{maxlen}]"
-        self.functions = set()
-        self.load_methods("lists.py")
+        self.spec_file = "lists.py"
+        self.c_type = f"struct {self.prefix()}"
 
     def prefix(self):
         return f"list{self.maxlen:d}__{self.tp.as_c_type()}"
@@ -29,9 +29,3 @@ class Lister(InferredType):
     def from_elements(cls, types: typing.List[InferredType], maxlen: int) -> "Lister":
         tp = functools.reduce(combine_types, types)
         return cls(tp, maxlen)
-
-    def get_attr(self, attr: str):
-        if attr in self.c_funcs:
-            self.functions.add(attr)
-            return self.c_funcs[attr]
-        return super().get_attr(attr)

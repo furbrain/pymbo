@@ -8,6 +8,7 @@
       <w>listcomp</w>
       <w>maxlen</w>
       <w>mult</w>
+      <w>ncontains</w>
       <w>orelse</w>
       <w>pymbo</w>
       <w>retval</w>

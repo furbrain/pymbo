@@ -1,6 +1,5 @@
 from typing import List
 
-import utils
 from context import Code
 from exceptions import StaticTypeError
 from . import InferredType, can_promote
@@ -38,7 +37,6 @@ class NativeMethod(FunctionType):
         self.implementation = implementation
         self.type = "NATIVE FUNCTION"
 
-    @utils.do_not_recurse('...')
     def __str__(self):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
@@ -59,7 +57,6 @@ class InlineNativeMethod(FunctionType):
         self.template = template
         self.type = "NATIVE INLINE FUNCTION"
 
-    @utils.do_not_recurse('...')
     def __str__(self):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"

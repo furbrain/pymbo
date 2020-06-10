@@ -5,9 +5,10 @@ import typed_ast.ast3 as ast
 import exceptions
 import itypes
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature
+from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError
 from itypes.functions import FunctionType
 from itypes.typedb import TypeDB
+from parser.binops import OPS_MAP
 
 if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
@@ -115,7 +116,7 @@ class ExpressionParser(ast.NodeVisitor):
             func_name = self.funcs.get_func_name(name, typesig)
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
-            func_type = func.tp.get_attr(node.func.attr)
+            func_type = func.tp.get_method(node.func.attr)
             return func_type.get_code(func, args)
         else:
             func = self.visit(node.func)
@@ -150,16 +151,19 @@ class ExpressionParser(ast.NodeVisitor):
         return Code(tp=itypes.combine_types(body.tp, orelse.tp), code=code)
 
     def visit_BinOp(self, node):
-        op = type(node.op).__name__
         left = self.visit(node.left)
         right = self.visit(node.right)
-        result = self.get_binary_op_type(left.tp, right.tp, op)
-        if op in self.OPS_MAP:
-            op = self.OPS_MAP[op]
-        else:
-            raise NotImplementedError(op)
-        code = "({left} {op} {right})".format(left=left.code, op=op, right=right.code)
-        return Code(tp=result, code=code)
+        try:
+            func = left.tp.get_method(OPS_MAP[node.op.__class__])
+            result = func.get_code(left, [right])
+        except StaticTypeError:
+            try:
+                func = right.tp.get_method(OPS_MAP[node.op.__class__])  # ok try using right as function origin...
+                result = func.get_code(left, [right])
+            except StaticTypeError:
+                operation = node.op.__class__.__name__
+                raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
+        return result
 
     def get_binary_op_type(self, left, right, op):
         if self.both_args_numeric(left, right):
