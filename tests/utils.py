@@ -34,6 +34,10 @@ class PymboTest(unittest.TestCase):
         self.results_file.write(commented_original)
         compiled_code = pymbo.convert(textwrap.dedent(text))
         self.results_file.write(compiled_code + '\n/*======================*/\n')
+        self.compile_and_run(compiled_code)
+        return compiled_code
+
+    def compile_and_run(self, compiled_code):
         c_name = os.path.join(self.build_dir, f"{self.id()}.c")
         exe_name = os.path.join(self.build_dir, f"{self.id()}.exe")
         with open(c_name, 'w') as c_file:
@@ -41,7 +45,6 @@ class PymboTest(unittest.TestCase):
         self.assertEqual(0, os.system(f"gcc {c_name} -o {exe_name}"), "Compile Failed")
         result = subprocess.run(exe_name)
         self.assertEqual(1, result.returncode, "Final code does not return True")
-        return compiled_code
 
     def check_raises(self, text: str, exc: Type[Exception]):
         text = textwrap.dedent(text)

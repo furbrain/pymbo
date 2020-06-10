@@ -1,8 +1,8 @@
-import unittest
-
+import pymbo
 from exceptions import UnimplementedFeature
 from parser import get_expression_code
 from parser.module import ModuleParser
+from tests.utils import PymboTest
 
 BASIC_TESTS = {
     "'a'": ("str", '"a"'),
@@ -47,13 +47,23 @@ COMP_NOT_IMPLEMENTED = (
 )
 
 
-class TestExpressions(unittest.TestCase):
+class TestExpressions(PymboTest):
     def run_passing_tests(self, params):
         for code, expected in params.items():
             with self.subTest(code=code):
                 results = get_expression_code(code, ModuleParser(), None)
                 self.assertEqual(expected[0], results.tp)
                 self.assertEqual(expected[1], results.code)
+
+    def compile_and_check_expressions(self, params):
+        for code, expected in params.items():
+            # FIXME - should work with all reasonable python expressions...
+            if expected[0] != "str":
+                with self.subTest(code=code):
+                    results = get_expression_code(code, ModuleParser(), None)
+                    expected_result = str(eval(code)).lower()
+                    test_code = f"{pymbo.INCLUDES}\nint main(){{\n    return {results.code}=={expected_result};}}"
+                    self.compile_and_run(test_code)
 
     def run_not_implemented_tests(self, params):
         for code in params:
@@ -62,15 +72,19 @@ class TestExpressions(unittest.TestCase):
 
     def test_basics(self):
         self.run_passing_tests(BASIC_TESTS)
+        self.compile_and_check_expressions(BASIC_TESTS)
 
     def test_binops(self):
         self.run_passing_tests(SIMPLE_OPS)
+        self.compile_and_check_expressions(BASIC_TESTS)
 
     def test_if_expr(self):
         self.run_passing_tests(IF_EXPR)
+        self.compile_and_check_expressions(BASIC_TESTS)
 
     def test_comp(self):
         self.run_passing_tests(COMP_TESTS)
+        self.compile_and_check_expressions(BASIC_TESTS)
 
     def test_comp_fails(self):
         self.run_not_implemented_tests(COMP_NOT_IMPLEMENTED)
