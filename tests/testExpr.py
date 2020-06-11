@@ -45,8 +45,8 @@ COMP_TESTS = {
 COMP_NOT_IMPLEMENTED = (
     "'a' in 'abc'",
     "'f' not in 'fred'",
-    "x is not 7",
-    "y is True",
+    "1 is not 7",
+    "2 is True",
     "2 < 5 < 7"
 )
 
@@ -98,7 +98,7 @@ class TestExpressions(PymboTest):
         self.compile_and_check_expressions(BASIC_TESTS)
 
     def test_comp_fails(self):
-        self.run_failing_tests(COMP_NOT_IMPLEMENTED, UnimplementedFeature)
+        self.run_failing_tests(COMP_NOT_IMPLEMENTED, (StaticTypeError, UnimplementedFeature))
 
     def test_comp_type_errors(self):
         self.run_failing_tests(COMP_TYPE_ERRORS, StaticTypeError)

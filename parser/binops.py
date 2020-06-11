@@ -20,8 +20,8 @@ OPS_MAP = {
     ast.LtE: "__le__",
     ast.Gt: "__gt__",
     ast.GtE: "__ge__",
-    ast.Is: "__eq__",
-    ast.IsNot: "__ne__",
+    ast.Is: "__is__",
+    ast.IsNot: "__isnt__",
     ast.In: "__contains__",
     ast.NotIn: "__ncontains__"
 

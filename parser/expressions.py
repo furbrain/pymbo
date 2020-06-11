@@ -6,7 +6,6 @@ import exceptions
 import itypes
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError, InvalidOperation
-from itypes import combine_types
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
 
@@ -34,20 +33,6 @@ class ExpressionParser(ast.NodeVisitor):
         True: "true",
         False: "false",
         None: "null"
-    }
-    OPS_MAP = {
-        "Add": "+",
-        "Sub": "-",
-        "Mult": "*",
-        "Div": "/"
-    }
-    COMPS_MAP = {
-        "Eq": "==",
-        "NotEq": "!=",
-        "Lt": "<",
-        "LtE": "<=",
-        "Gt": ">",
-        "GtE": ">=",
     }
 
     def __init__(self, module: "ModuleParser", context: "Context"):
@@ -145,15 +130,20 @@ class ExpressionParser(ast.NodeVisitor):
     def visit_BinOp(self, node):
         left = self.visit(node.left)
         right = self.visit(node.right)
+        result = self.get_binary_op_code(left, node.op, right)
+        return result
+
+    def get_binary_op_code(self, left, op, right):
+        method_name = OPS_MAP[op.__class__]
         try:
-            func = left.tp.get_method(OPS_MAP[node.op.__class__])
+            func = left.tp.get_method(method_name)
             result = func.get_code(left, right)
         except (StaticTypeError, InvalidOperation):
             try:
-                func = right.tp.get_method(OPS_MAP[node.op.__class__])  # ok try using right as function origin...
+                func = right.tp.get_method(method_name)  # ok try using right as function origin...
                 result = func.get_code(left, right)
             except (StaticTypeError, InvalidOperation):
-                operation = node.op.__class__.__name__
+                operation = op.__class__.__name__
                 raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
         return result
 
@@ -188,16 +178,9 @@ class ExpressionParser(ast.NodeVisitor):
     def visit_Compare(self, node: ast.AST):
         if len(node.ops) > 1:
             raise UnimplementedFeature("Multiple comparisons not yet implemented", node)
-        op = type(node.ops[0]).__name__
-        if op not in self.COMPS_MAP:
-            raise UnimplementedFeature("Comparator %s not yet implemented" % op, node)
-        # check types are compatible
         left = self.visit(node.left)
         right = self.visit(node.comparators[0])
-        combine_types(left.tp, right.tp)
-
-        code = f"({left.code} {self.COMPS_MAP[op]} {right.code})"
-        return Code(tp=self.BOOL, code=code)
+        return self.get_binary_op_code(left, node.ops[0], right)
 
     # def visit_ListComp(self, node):
     #     scope = self.get_scope_for_comprehension(node)
