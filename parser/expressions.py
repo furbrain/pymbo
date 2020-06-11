@@ -5,9 +5,8 @@ import typed_ast.ast3 as ast
 import exceptions
 import itypes
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError
+from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError, InvalidOperation
 from itypes import combine_types
-from itypes.functions import FunctionType
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
 
@@ -55,9 +54,6 @@ class ExpressionParser(ast.NodeVisitor):
         self.module = module
         self.context = context
         self.funcs = module.funcs
-
-    def as_function(self, function: FunctionType, *args):
-        pass
 
     def visit_Num(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.n), code=str(node.n))
@@ -118,7 +114,7 @@ class ExpressionParser(ast.NodeVisitor):
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
             func_type = func.tp.get_method(node.func.attr)
-            return func_type.get_code(func, args)
+            return func_type.get_code(func, *args)
         else:
             raise UnimplementedFeature("running function from subscripted arg??")
         if func_type is None:
@@ -132,10 +128,7 @@ class ExpressionParser(ast.NodeVisitor):
     #
     def visit_Attribute(self, node):
         value = self.visit(node.value)
-        if value.is_pointer:
-            code = f"{value.code}->{node.attr}"
-        else:
-            code = f"{value.code}.{node.attr}"
+        code = f"{value.as_accessor()}{node.attr}"
         return Code(tp=value.tp.get_attr(node.attr), code=code)
 
     def visit_Expr(self, node):
@@ -154,12 +147,12 @@ class ExpressionParser(ast.NodeVisitor):
         right = self.visit(node.right)
         try:
             func = left.tp.get_method(OPS_MAP[node.op.__class__])
-            result = func.get_code(left, [right])
-        except StaticTypeError:
+            result = func.get_code(left, right)
+        except (StaticTypeError, InvalidOperation):
             try:
                 func = right.tp.get_method(OPS_MAP[node.op.__class__])  # ok try using right as function origin...
-                result = func.get_code(left, [right])
-            except StaticTypeError:
+                result = func.get_code(left, right)
+            except (StaticTypeError, InvalidOperation):
                 operation = node.op.__class__.__name__
                 raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
         return result
@@ -188,7 +181,7 @@ class ExpressionParser(ast.NodeVisitor):
         if slice_type == "Index":
             index = self.visit(node.slice.value)
             accessor = value.tp.get_method("get_item")
-            return accessor.get_code(value, [index])
+            return accessor.get_code(value, index)
         else:
             raise UnimplementedFeature("Slices not yet implemented")
 

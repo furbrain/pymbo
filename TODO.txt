@@ -1,3 +1,13 @@
+sort out int and float separate specs when other bugs fixed
+lots of changes needed here:
+mod -> fmod
+floordiv in float needs floor function adding
+not bitwise operator for float
+
+and tests for the above obvsballs
+
+
+
 work out some sort of class function implementation??
 generally replace operations with function calls
  - have "InlineFunction" class where not needed - operation called on left operand only

@@ -87,7 +87,7 @@ class FunctionImplementation(ast.NodeVisitor):
                 if slice_type == "Index":
                     index = self.get_code(n.slice.value)
                     setter = value.tp.get_method("set_item")
-                    code = setter.get_code(value, [index, right])
+                    code = setter.get_code(value, index, right)
                     self.start_line(f"{code.code};\n")
                 else:
                     raise UnimplementedFeature("Slices not yet implemented")

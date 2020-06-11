@@ -24,7 +24,7 @@ class TypeDB:
         if maxlen is None:
             maxlen = 40
         tp = Lister.from_elements(elements, maxlen)
-        return cls.types.setdefault(tp.c_type, tp)
+        return cls.types.setdefault(tp.name, tp)
 
     @classmethod
     def get_type_by_name(cls, text: str) -> basics.InferredType:

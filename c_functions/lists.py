@@ -8,7 +8,7 @@
     """,
     "methods": {
         "get_item": {
-            "args": "int",
+            "args": "{self}, int",
             "retval": "{self.tp}",
             "def": """
                 {self.tp} {self.prefix()}__get_item(struct {self.prefix()} *lst, int index);
@@ -25,7 +25,7 @@
         },
         "set_item": {
             "style": "method",
-            "args": "int, {self.tp}",
+            "args": "{self}, int, {self.tp}",
             "retval": "None",
             "def": """
                 void {self.prefix()}__set_item(struct {self.prefix()} *lst, int index, {self.tp} value);
@@ -41,7 +41,7 @@
             """,
         },
         "append": {
-            "args": "{self.tp}",
+            "args": "{self}, {self.tp}",
             "retval": "None",
             "def": """
                 void {self.prefix()}__append(struct {self.prefix()} *self, {self.tp} value);
@@ -60,9 +60,9 @@
     },
     "inlines": {
         "len": {
-            "args": "",
+            "args": "{self}",
             "retval": "int",
-            "template": "{obj.as_accessor()}len"
+            "template": "{args[0].as_accessor()}len"
         }
     }
 }

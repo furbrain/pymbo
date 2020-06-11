@@ -12,7 +12,7 @@ class FunctionType(InferredType):
         self.args = args
         self.retval = returns
 
-    def get_code(self, obj: Code, args: List[Code]):
+    def get_code(self, *args: Code):
         raise NotImplementedError
 
     def check_code(self, args):
@@ -41,9 +41,9 @@ class NativeMethod(FunctionType):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
 
-    def get_code(self, obj: Code, args: List[Code]) -> Code:
+    def get_code(self, *args: Code) -> Code:
         self.check_code(args)
-        arg_strings = [arg.as_function_arg() for arg in [obj] + args]
+        arg_strings = [arg.as_function_arg() for arg in args]
         return Code(tp=self.retval, code=f"{self.name}({', '.join(arg_strings)})")
 
 
@@ -61,8 +61,8 @@ class InlineNativeMethod(FunctionType):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
 
-    def get_code(self, obj: Code, args: List[Code]) -> Code:
+    def get_code(self, *args: Code) -> Code:
         self.check_code(args)
         # noinspection PyUnusedLocal
-        arg_strings = [arg.as_function_arg() for arg in [obj] + args]
+        arg_strings = [arg.as_function_arg() for arg in args]
         return Code(tp=self.retval, code=eval(f"f'{self.template}'"))
