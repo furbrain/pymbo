@@ -103,8 +103,3 @@ class TestExpressions(PymboTest):
     def test_comp_type_errors(self):
         self.run_failing_tests(COMP_TYPE_ERRORS, StaticTypeError)
 
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

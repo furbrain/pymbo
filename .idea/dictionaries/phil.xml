@@ -2,14 +2,18 @@
   <dictionary name="phil">
     <words>
       <w>classiter</w>
+      <w>coool</w>
       <w>elts</w>
       <w>itypes</w>
       <w>lineno</w>
       <w>listcomp</w>
+      <w>lval</w>
       <w>maxlen</w>
       <w>mult</w>
       <w>ncontains</w>
+      <w>opargs</w>
       <w>orelse</w>
+      <w>printf</w>
       <w>pymbo</w>
       <w>retval</w>
       <w>retvals</w>

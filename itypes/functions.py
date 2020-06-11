@@ -13,7 +13,7 @@ class FunctionType(InferredType):
         self.retval = returns
 
     def get_code(self, *args: Code):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def check_code(self, args):
         if len(args) < len(self.args):

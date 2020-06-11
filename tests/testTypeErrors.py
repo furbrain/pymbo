@@ -1,4 +1,4 @@
-from exceptions import TranslationError, UnhandledNode, StaticTypeError
+from exceptions import UnhandledNode, StaticTypeError, UnknownVariable
 from itypes import TypeDB
 from tests.utils import PymboTest
 
@@ -57,7 +57,7 @@ class TestTypeErrors(PymboTest):
             b = 1
             b = a
         """
-        self.check_raises(code, TranslationError)
+        self.check_raises(code, UnknownVariable)
 
     def test_delete_not_valid(self):
         code = """

@@ -72,7 +72,7 @@ class InferredType(metaclass=ABCMeta):
         c_func_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../c_functions"))
         with open(os.path.join(c_func_dir, self.spec_file)) as f:
             c_data = eval(f.read(), {"__builtins__": None})
-        self.definition = c_data["def"]
+        self.definition = dedent(c_data["def"])
         self.definition = eval(f'f"""{self.definition}"""')
         for name, func in c_data["methods"].items():
             vals, args, retval = self.get_vals_args_and_retval(func)

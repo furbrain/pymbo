@@ -1,11 +1,13 @@
 from typing import TYPE_CHECKING, Optional
 
 import typed_ast.ast3 as ast
+from typed_ast.ast3 import NodeVisitor
 
 import exceptions
 import itypes
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError, InvalidOperation
+from itypes.functions import InlineNativeMethod
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
 
@@ -22,18 +24,25 @@ def get_expression_code(expression, module: "ModuleParser", context: Optional[Co
     return parser.visit(expression)
 
 
+def get_constant_code(expression, module: "ModuleParser") -> Code:
+    if isinstance(expression, str):
+        expression = ast.parse(expression)
+    parser = ConstantParser(module, module.context)
+    return parser.visit(expression)
+
+
 # noinspection PyPep8Naming,PyMethodMayBeStatic
-class ExpressionParser(ast.NodeVisitor):
-    FLOAT = TypeDB.get_type_by_name('float')
-    INT = TypeDB.get_type_by_name('int')
-    STR = TypeDB.get_type_by_name('str')
-    BOOL = TypeDB.get_type_by_name('bool')
-    NUMERIC_TYPES = (INT, FLOAT)
+class ExpressionBaseParser(NodeVisitor):
     CONSTANTS_MAP = {
         True: "true",
         False: "false",
         None: "null"
     }
+    BOOL = TypeDB.get_type_by_name('bool')
+    STR = TypeDB.get_type_by_name('str')
+    INT = TypeDB.get_type_by_name('int')
+    FLOAT = TypeDB.get_type_by_name('float')
+    NUMERIC_TYPES = (INT, FLOAT)
 
     def __init__(self, module: "ModuleParser", context: "Context"):
         self.module = module
@@ -49,12 +58,6 @@ class ExpressionParser(ast.NodeVisitor):
     def visit_Bytes(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + str(node.s, 'utf-8') + '"')
 
-    def visit_Name(self, node):
-        if node.id in self.context:
-            return self.context[node.id]
-        else:
-            raise exceptions.TranslationError(f"Unknown Variable: {node.id}")
-
     def visit_NameConstant(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.value), code=self.CONSTANTS_MAP[node.value])
 
@@ -63,6 +66,31 @@ class ExpressionParser(ast.NodeVisitor):
         tp = TypeDB.get_list([t.tp for t in types_and_codes])
         code = tp.as_literal([t.code for t in types_and_codes])
         return Code(tp=tp, code=code)
+
+    def visit_Expr(self, node):
+        return self.visit(node.value)
+
+    def generic_visit(self, node):
+        raise UnhandledNode(node)
+
+    def visit_BinOp(self, node):
+        left = self.visit(node.left)
+        right = self.visit(node.right)
+        result = self.get_binary_op_code(left, node.op, right)
+        return result
+
+    def get_binary_op_code(self, left: Code, op: ast.AST, right: Code):  # pragma: no cover
+        raise NotImplementedError
+
+
+# noinspection PyPep8Naming,PyMethodMayBeStatic
+class ExpressionParser(ExpressionBaseParser):
+
+    def visit_Name(self, node):
+        try:
+            return self.context[node.id]
+        except KeyError:
+            raise exceptions.UnknownVariable(f"Unknown Variable: {node.id}")
 
     # not yet implemented
     # def visit_Tuple(self, node):
@@ -116,9 +144,6 @@ class ExpressionParser(ast.NodeVisitor):
         code = f"{value.as_accessor()}{node.attr}"
         return Code(tp=value.tp.get_attr(node.attr), code=code)
 
-    def visit_Expr(self, node):
-        return self.visit(node.value)
-
     def visit_Module(self, node):
         return self.visit(node.body[0])
 
@@ -126,26 +151,6 @@ class ExpressionParser(ast.NodeVisitor):
         test, body, orelse = [self.visit(x) for x in (node.test, node.body, node.orelse)]
         code = "%s ? %s : %s" % (test.code, body.code, orelse.code)
         return Code(tp=itypes.combine_types(body.tp, orelse.tp), code=code)
-
-    def visit_BinOp(self, node):
-        left = self.visit(node.left)
-        right = self.visit(node.right)
-        result = self.get_binary_op_code(left, node.op, right)
-        return result
-
-    def get_binary_op_code(self, left, op, right):
-        method_name = OPS_MAP[op.__class__]
-        try:
-            func = left.tp.get_method(method_name)
-            result = func.get_code(left, right)
-        except (StaticTypeError, InvalidOperation):
-            try:
-                func = right.tp.get_method(method_name)  # ok try using right as function origin...
-                result = func.get_code(left, right)
-            except (StaticTypeError, InvalidOperation):
-                operation = op.__class__.__name__
-                raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
-        return result
 
     # def visit_UnaryOp(self, node):
     #     op = type(node.op).__name__
@@ -211,6 +216,41 @@ class ExpressionParser(ast.NodeVisitor):
     #         iterator = get_expression_type(generator.iter, scope)
     #         assign_to_node(generator.target, iterator.get_iter(), scope)
     #     return scope
+    def get_binary_op_code(self, left, op, right):
+        method_name = OPS_MAP[op.__class__]
+        try:
+            func = left.tp.get_method(method_name)
+            result = func.get_code(left, right)
+        except (StaticTypeError, InvalidOperation):
+            try:
+                func = right.tp.get_method(method_name)  # ok try using right as function origin...
+                result = func.get_code(left, right)
+            except (StaticTypeError, InvalidOperation):
+                operation = op.__class__.__name__
+                raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
+        return result
+
+
+# noinspection PyPep8Naming,PyMethodMayBeStatic
+class ConstantParser(ExpressionBaseParser):
+
+    def get_binary_op_code(self, left: Code, op: ast.AST, right: Code):
+        method_name = OPS_MAP[op.__class__]
+        operation = op.__class__.__name__
+        try:
+            func = left.tp.get_method(method_name)
+            if not isinstance(func, InlineNativeMethod):
+                raise StaticTypeError(f"Can't use {operation} at module level")
+            result = func.get_code(left, right)
+        except (StaticTypeError, InvalidOperation):
+            try:
+                func = right.tp.get_method(method_name)  # ok try using right as function origin...
+                if not isinstance(func, InlineNativeMethod):
+                    raise StaticTypeError(f"Can't use {operation} at module level")
+                result = func.get_code(left, right)
+            except (StaticTypeError, InvalidOperation):
+                raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
+        return result
 
     def generic_visit(self, node):
-        raise UnhandledNode(node)
+        raise StaticTypeError(f"{node.__class__.__name__} not permitted in global definition")

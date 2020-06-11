@@ -8,6 +8,8 @@ class PymboError(Exception):
 class TranslationError(PymboError):
     pass
 
+class UnknownVariable(PymboError):
+    pass
 
 class UnhandledNode(TranslationError):
     def __init__(self, node: ast.AST) -> None:

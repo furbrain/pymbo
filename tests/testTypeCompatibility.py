@@ -46,3 +46,7 @@ class TestTypeEquivalence(PymboTest):
         self.assertEqual(b, c)
         self.assertEqual(a, a)
         self.assertEqual(a, int)
+
+    def test_int_equality_fails_with_bad_comparator(self):
+        a = TypeDB.get_type_by_value(1)
+        self.assertFalse((a == self))

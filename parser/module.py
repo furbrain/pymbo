@@ -3,10 +3,11 @@ import traceback
 
 from typed_ast import ast3 as ast
 
-from context import Context
-from exceptions import PymboError
+from context import Context, Code
+from exceptions import PymboError, UnhandledNode, StaticTypeError, InvalidOperation
 from funcdb import FuncDB
 from itypes.typedb import TypeDB
+from parser.expressions import get_constant_code
 
 
 # noinspection PyPep8Naming
@@ -16,6 +17,7 @@ class ModuleParser(ast.NodeVisitor):
         self.context = Context()
         self.text = ""
         self.name = ""
+        self.globals = []
 
     def parse_string(self, text: str):
         self.text = text
@@ -54,6 +56,9 @@ class ModuleParser(ast.NodeVisitor):
         if include_type_funcs:
             for t in TypeDB.types.values():
                 code += t.get_type_def()
+        code += ''.join(self.globals)
+        if include_type_funcs:
+            for t in TypeDB.types.values():
                 code += t.get_definitions()
                 code += t.get_implementations()
         code += "\n".join(self.funcs.get_all_definitions())
@@ -68,3 +73,21 @@ class ModuleParser(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef):
         # ignore any defs within classes
         pass
+
+    def visit_Module(self, node):
+        super().generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign):
+        right = get_constant_code(node.value, self)
+        for n in node.targets:
+            if isinstance(n, ast.Name):
+                if n.id in self.context:
+                    raise StaticTypeError("Cannot redefine global variables")
+                self.context[n.id] = Code(tp=right.tp, code=n.id)
+                left = self.context[n.id]
+                self.globals += [f"{left.tp.c_type} {n.id} = {right.as_value()};\n"]
+            else:
+                raise InvalidOperation("Can only initialise global variables")
+
+    def generic_visit(self, node):
+        raise UnhandledNode(node)
