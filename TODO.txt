@@ -7,7 +7,6 @@ not bitwise operator for float
 and tests for the above obvsballs
 
 
-enable module level variables - can only have literal initialisation
 maybe get printf working??
 some more list actions??
 list multiplication could be coool.... but would need tog et temp variables up and running....

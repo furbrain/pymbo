@@ -80,3 +80,18 @@ class Context:
 
     def locals(self):
         return self.dct.items()
+
+    def clear_temp_vars(self):
+        tmps = [x for x in self.dct if x.startswith("_tmp")]
+        for tmp in tmps:
+            del self.dct[tmp]
+
+    def get_temp_var(self, tp: InferredType):
+        i = 1
+        while True:
+            name = f"_tmp{i:d}"
+            if name not in self:
+                break
+            i += 1
+        self[name] = Code(tp, code=name)
+        return self[name]

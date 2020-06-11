@@ -85,3 +85,16 @@ class TestLists(PymboTest):
             return b - 3
         """
         self.translate(code)
+
+    def test_function_with_list_arg_and_return_works(self):
+        code = """
+        def op(lst):
+            a = [lst[1]]
+            return a
+            
+        def main():
+            b = [1,2,3,4]
+            b = op(b)
+            return b[0]==2
+        """
+        self.translate(code)

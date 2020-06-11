@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple, List
 
 import typed_ast.ast3 as ast
 from typed_ast.ast3 import NodeVisitor
@@ -15,13 +15,14 @@ if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
 
-def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]) -> Code:
+def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]) -> Tuple[Code, List[str]]:
     if isinstance(expression, str):
         expression = ast.parse(expression)
     if context is None:
         context = module.context
     parser = ExpressionParser(module, context)
-    return parser.visit(expression)
+    code = parser.visit(expression)
+    return code, parser.prepends
 
 
 def get_constant_code(expression, module: "ModuleParser") -> Code:
@@ -48,6 +49,7 @@ class ExpressionBaseParser(NodeVisitor):
         self.module = module
         self.context = context
         self.funcs = module.funcs
+        self.prepends = []
 
     def visit_Num(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.n), code=str(node.n))
@@ -118,20 +120,26 @@ class ExpressionParser(ExpressionBaseParser):
 
     def visit_Call(self, node):
         args = [self.visit(n) for n in node.args]
-        args_code = [x.code for x in args]
         if isinstance(node.func, ast.Name):
             name = node.func.id
             typesig = tuple([x.tp for x in args])
             func_type = self.funcs.get_func(name, typesig)
+            if func_type is None:
+                raise exceptions.IdentifierNotFound(node.func)
             func_name = self.funcs.get_func_name(name, typesig)
+            if not func_type.retval.tp.pass_by_value:
+                tmp = self.context.get_temp_var(func_type.retval.tp)
+                args.append(tmp)
+                args_code = [x.as_function_arg() for x in args]
+                self.prepends += [f"{func_name}({', '.join(args_code)});\n"]
+                return tmp
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
             func_type = func.tp.get_method(node.func.attr)
             return func_type.get_code(func, *args)
         else:
             raise UnimplementedFeature("running function from subscripted arg??")
-        if func_type is None:
-            raise exceptions.IdentifierNotFound(node.func)
+        args_code = [x.code for x in args]
         return Code(tp=func_type.retval.tp, code=f"{func_name}({', '.join(args_code)})")
 
     # def visit_Lambda(self, node):

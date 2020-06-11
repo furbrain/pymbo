@@ -65,6 +65,12 @@ class InferredType(metaclass=ABCMeta):
     def prefix(self):
         return self.c_type
 
+    def fn_type(self):
+        if self.pass_by_value:
+            return self.c_type
+        else:
+            return f"{self.c_type}*"
+
     def load_methods(self):
         if self.methods_loaded or self.spec_file == "":
             return

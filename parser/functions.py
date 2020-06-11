@@ -22,19 +22,33 @@ class FunctionImplementation(ast.NodeVisitor):
         self.context = Context(module.context)
         self.funcs = module.funcs
         self.args = []
+        self.return_by_value = True
         for arg, arg_type in zip(node.args.args, type_sig):
-            self.context[arg.arg] = Code(arg_type, is_arg=True, code=arg.arg)
-            self.args += [arg_type.c_type + " " + arg.arg]
+            self.context[arg.arg] = Code(arg_type, is_arg=True, is_pointer=not arg_type.pass_by_value, code=arg.arg)
+            self.args += [arg_type.fn_type() + " " + arg.arg]
         self.indent = 2
         self.type_sig = type_sig
         self.primary_node = node
         self.generate_code()
+
+    def retval_in_c(self):
+        if self.retval.tp.pass_by_value:
+            return self.retval.tp.c_type
+        else:
+            return "void"
+
+    def args_in_c(self):
+        if self.retval.tp.pass_by_value:
+            return self.args
+        else:
+            return self.args + [f"{self.retval.tp.fn_type()} _retval"]
 
     def generate_code(self):
         self.body = ""
         self.indent = 2
         self.retval = Code(tp=None)
         self.all_paths_return = False
+        self.context.clear_temp_vars()
         for n in self.primary_node.body:
             self.visit(n)
         if not self.all_paths_return:
@@ -66,7 +80,11 @@ class FunctionImplementation(ast.NodeVisitor):
     def visit_Return(self, node: ast.Return) -> None:
         result = self.get_code(node.value)
         self.retval.assign_type(result.tp, " as return value")
-        self.start_line("return " + result.code + ";\n")
+        if self.retval.tp.pass_by_value:
+            self.start_line(f"return {result.code};\n")
+        else:
+            self.start_line(f"*_retval = {result.code};\n")
+            self.start_line("return;\n")
         self.all_paths_return = True
 
     def visit_Expr(self, node: ast.Expr) -> None:
@@ -93,7 +111,10 @@ class FunctionImplementation(ast.NodeVisitor):
                     raise UnimplementedFeature("Slices not yet implemented")
 
     def get_code(self, node: ast.AST) -> Code:
-        return get_expression_code(node, self.module, self.context)
+        code, prepends = get_expression_code(node, self.module, self.context)
+        for line in prepends:
+            self.start_line(line)
+        return code
 
     def generic_visit(self, node):
         raise UnhandledNode(node)
