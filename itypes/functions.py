@@ -12,7 +12,7 @@ class FunctionType(InferredType):
         self.args = args
         self.retval = returns
 
-    def get_code(self, *args: Code):
+    def get_code(self, context, *args: Code):
         raise NotImplementedError  # pragma: no cover
 
     def check_code(self, args):
@@ -25,7 +25,7 @@ class FunctionType(InferredType):
                 raise StaticTypeError(f"Argument {i + 1} should be {needed}, but is {supplied.tp} ")
 
 
-class NativeMethod(FunctionType):
+class CMethod(FunctionType):
     def __init__(self,
                  name: str,
                  args: List[InferredType],
@@ -41,13 +41,13 @@ class NativeMethod(FunctionType):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
 
-    def get_code(self, *args: Code) -> Code:
+    def get_code(self, context, *args: Code) -> Code:
         self.check_code(args)
         arg_strings = [arg.as_function_arg() for arg in args]
         return Code(tp=self.retval, code=f"{self.name}({', '.join(arg_strings)})")
 
 
-class InlineNativeMethod(FunctionType):
+class InlineCMethod(FunctionType):
     def __init__(self,
                  name: str,
                  args: List[InferredType],
@@ -61,12 +61,17 @@ class InlineNativeMethod(FunctionType):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
 
-    def get_code(self, *args: Code) -> Code:
+    def get_code(self, context, *args: Code) -> Code:
         self.check_code(args)
         # noinspection PyUnusedLocal
         arg_strings = [arg.as_function_arg() for arg in args]
         return Code(tp=self.retval, code=eval(f"f'{self.template}'"))
 
 
-class PythonFunction(NativeMethod):
+class PythonFunction(CMethod):
     pass
+
+
+class ComputedFunction(FunctionType):
+    def get_code(self, context, *args: Code):
+        raise NotImplementedError

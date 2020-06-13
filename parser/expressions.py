@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Tuple, List
+from typing import TYPE_CHECKING, Optional, List, Set
 
 import typed_ast.ast3 as ast
 from typed_ast.ast3 import NodeVisitor
@@ -6,8 +6,8 @@ from typed_ast.ast3 import NodeVisitor
 import exceptions
 import itypes
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError, InvalidOperation
-from itypes.functions import InlineNativeMethod
+from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError, InvalidOperation, UnknownVariable
+from itypes.functions import InlineCMethod
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
 
@@ -15,14 +15,16 @@ if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
 
-def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]) -> Tuple[Code, List[str]]:
+def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]) -> Code:
     if isinstance(expression, str):
         expression = ast.parse(expression)
     if context is None:
         context = module.context
     parser = ExpressionParser(module, context)
     code = parser.visit(expression)
-    return code, parser.prepends
+    code.prepends = parser.prepends
+    code.libraries = parser.libraries
+    return code
 
 
 def get_constant_code(expression, module: "ModuleParser") -> Code:
@@ -49,7 +51,8 @@ class ExpressionBaseParser(NodeVisitor):
         self.module = module
         self.context = context
         self.funcs = module.funcs
-        self.prepends = []
+        self.prepends: List[str] = []
+        self.libraries: Set[str] = set()
 
     def visit_Num(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.n), code=str(node.n))
@@ -88,6 +91,12 @@ class ExpressionBaseParser(NodeVisitor):
 # noinspection PyPep8Naming,PyMethodMayBeStatic
 class ExpressionParser(ExpressionBaseParser):
 
+    def visit(self, node):
+        result = super().visit(node)
+        self.prepends += result.prepends
+        self.libraries.update(result.libraries)
+        return result
+
     def visit_Name(self, node):
         try:
             return self.context[node.id]
@@ -121,11 +130,14 @@ class ExpressionParser(ExpressionBaseParser):
     def visit_Call(self, node):
         args = [self.visit(n) for n in node.args]
         if isinstance(node.func, ast.Name):
-            name = node.func.id
-            typesig = tuple([x.tp for x in args])
-            func_type = self.funcs.get_func(name, typesig)
-            if func_type is None:
-                raise exceptions.IdentifierNotFound(node.func)
+            try:
+                func_type = self.visit(node.func).tp
+            except UnknownVariable:
+                name = node.func.id
+                typesig = tuple([x.tp for x in args])
+                func_type = self.funcs.get_func(name, typesig)
+                if func_type is None:
+                    raise exceptions.IdentifierNotFound(node.func)
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
             func_type = func.tp.get_method(node.func.attr)
@@ -135,10 +147,10 @@ class ExpressionParser(ExpressionBaseParser):
         if not func_type.retval.pass_by_value:
             tmp = self.context.get_temp_var(func_type.retval)
             args.append(tmp)
-            self.prepends += [f"{func_type.get_code(*args).code};\n"]
+            self.prepends += [f"{func_type.get_code(self.context, *args).code};\n"]
             return tmp
         else:
-            return func_type.get_code(*args)
+            return func_type.get_code(self.context, *args)
 
     # def visit_Lambda(self, node):
     #     arg_names = [arg.arg for arg in node.args.args]
@@ -182,7 +194,7 @@ class ExpressionParser(ExpressionBaseParser):
         if slice_type == "Index":
             index = self.visit(node.slice.value)
             accessor = value.tp.get_method("get_item")
-            return accessor.get_code(value, index)
+            return accessor.get_code(self.context, value, index)
         else:
             raise UnimplementedFeature("Slices not yet implemented")
 
@@ -226,11 +238,11 @@ class ExpressionParser(ExpressionBaseParser):
         method_name = OPS_MAP[op.__class__]
         try:
             func = left.tp.get_method(method_name)
-            result = func.get_code(left, right)
+            result = func.get_code(self.context, left, right)
         except (StaticTypeError, InvalidOperation):
             try:
                 func = right.tp.get_method(method_name)  # ok try using right as function origin...
-                result = func.get_code(left, right)
+                result = func.get_code(self.context, left, right)
             except (StaticTypeError, InvalidOperation):
                 operation = op.__class__.__name__
                 raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
@@ -245,15 +257,15 @@ class ConstantParser(ExpressionBaseParser):
         operation = op.__class__.__name__
         try:
             func = left.tp.get_method(method_name)
-            if not isinstance(func, InlineNativeMethod):
+            if not isinstance(func, InlineCMethod):
                 raise StaticTypeError(f"Can't use {operation} at module level")
-            result = func.get_code(left, right)
+            result = func.get_code(self.context, left, right)
         except (StaticTypeError, InvalidOperation):
             try:
                 func = right.tp.get_method(method_name)  # ok try using right as function origin...
-                if not isinstance(func, InlineNativeMethod):
+                if not isinstance(func, InlineCMethod):
                     raise StaticTypeError(f"Can't use {operation} at module level")
-                result = func.get_code(left, right)
+                result = func.get_code(self.context, left, right)
             except (StaticTypeError, InvalidOperation):
                 raise StaticTypeError(f"Arguments {left.tp}, {right.tp} not valid for operation {operation}")
         return result

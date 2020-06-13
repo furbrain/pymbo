@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Sequence, Dict, Optional, TYPE_CHECKING
+from typing import Sequence, Dict, Optional, TYPE_CHECKING, Set
 
 from typed_ast import ast3 as ast
 
@@ -17,6 +17,7 @@ class FuncDB:
         self.module = module
         self.func_nodes: Dict[str, ast.FunctionDef] = {}
         self.func_implementations: Dict[str, Dict[TypeSig, PythonFunction]] = defaultdict(dict)
+        self.libraries: Set[str] = set()
 
     def get_func(self, name: str, typesig: TypeSig) -> Optional[FunctionType]:
         if name in self.func_nodes:
@@ -28,6 +29,7 @@ class FuncDB:
                                           impl.retval.tp,
                                           definition=self.get_definition(func_name, impl),
                                           implementation=self.get_implementation(func_name, impl))
+                self.libraries.update(impl.libraries)
                 self.func_implementations[name][typesig] = functype
             return self.func_implementations[name][typesig]
         else:

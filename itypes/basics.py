@@ -74,7 +74,7 @@ class InferredType(metaclass=ABCMeta):
     def load_methods(self):
         if self.methods_loaded or self.spec_file == "":
             return
-        from .functions import NativeMethod, InlineNativeMethod
+        from .functions import CMethod, InlineCMethod
         c_func_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../c_functions"))
         with open(os.path.join(c_func_dir, self.spec_file)) as f:
             c_data = eval(f.read(), {"__builtins__": None})
@@ -82,10 +82,10 @@ class InferredType(metaclass=ABCMeta):
         self.definition = eval(f'f"""{self.definition}"""')
         for name, func in c_data["methods"].items():
             vals, args, retval = self.get_vals_args_and_retval(func)
-            self.attrs[name] = NativeMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
+            self.attrs[name] = CMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
         for name, func in c_data["inlines"].items():
             vals, args, retval = self.get_vals_args_and_retval(func)
-            self.attrs[name] = InlineNativeMethod(f'{self.prefix()}__{name}', args, retval, func['template'])
+            self.attrs[name] = InlineCMethod(f'{self.prefix()}__{name}', args, retval, func['template'])
         self.methods_loaded = True
 
     def get_vals_args_and_retval(self, func):

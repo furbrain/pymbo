@@ -1,16 +1,33 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
 from exceptions import StaticTypeError
-from itypes import InferredType
+
+if TYPE_CHECKING:
+    from itypes import InferredType
 
 
 class Code:
-    def __init__(self, tp: Optional[InferredType], is_pointer=False, is_exported=False, is_arg=False, code=""):
+    def __init__(self,
+                 tp: "Optional[InferredType]",
+                 code="",
+                 is_pointer=False,
+                 is_exported=False,
+                 is_arg=False,
+                 libraries=None,
+                 prepends=None):
         self.tp = tp
         self.is_pointer = is_pointer
         self.is_exported = is_exported
         self.is_arg = is_arg
         self.code = code
+        if libraries is None:
+            self.libraries = []
+        else:
+            self.libraries = libraries
+        if prepends is None:
+            self.prepends = []
+        else:
+            self.prepends = prepends
 
     def as_pointer(self):
         if self.is_pointer:
@@ -56,6 +73,13 @@ class Context:
         self.fname = fname
         self.parent = parent
         self.dct: Dict[str, Code] = {}
+        if self.parent is None:
+            self.load_builtins()
+
+    def load_builtins(self):
+        import py_functions
+        for name, func_tp in py_functions.builtin_functions.items():
+            self.dct[name] = Code(tp=func_tp)
 
     def __setitem__(self, key: str, value: Code):
         self.dct[key] = value
@@ -88,7 +112,7 @@ class Context:
         for tmp in tmps:
             del self.dct[tmp]
 
-    def get_temp_var(self, tp: InferredType):
+    def get_temp_var(self, tp: "InferredType"):
         i = 1
         while True:
             name = f"_tmp{i:d}"

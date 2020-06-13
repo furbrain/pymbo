@@ -53,6 +53,8 @@ class ModuleParser(ast.NodeVisitor):
     def create_code(self, include_type_funcs=False):
         self.funcs.get_func("main", ())
         code = ""
+        for lib in self.funcs.libraries:
+            code += f"#include <{lib}.h>\n"
         if include_type_funcs:
             for t in TypeDB.types.values():
                 code += t.get_type_def()

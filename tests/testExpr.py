@@ -62,7 +62,7 @@ class TestExpressions(PymboTest):
     def run_passing_tests(self, params):
         for code, expected in params.items():
             with self.subTest(code=code):
-                results, _ = get_expression_code(code, ModuleParser(), None)
+                results = get_expression_code(code, ModuleParser(), None)
                 self.assertEqual(expected[0], results.tp)
                 self.assertEqual(expected[1], results.code)
 
@@ -71,7 +71,7 @@ class TestExpressions(PymboTest):
             # FIXME - should work with all reasonable python expressions...
             if expected[0] != "str":
                 with self.subTest(code=code):
-                    results, _ = get_expression_code(code, ModuleParser(), None)
+                    results = get_expression_code(code, ModuleParser(), None)
                     expected_result = str(eval(code)).lower()
                     test_code = f"{pymbo.INCLUDES}\nint main(){{\n    return {results.code}=={expected_result};}}"
                     self.compile_and_run(test_code)

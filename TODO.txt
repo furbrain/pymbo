@@ -9,9 +9,7 @@ and tests for the above obvsballs
 
 maybe get printf working??
 some more list actions??
-list multiplication could be coool.... but would need tog et temp variables up and running....
-
-Also some work on typing system
+list multiplication could be coool.... but would need to get temp variables up and running....
 
 
 work out some sort of class function implementation??

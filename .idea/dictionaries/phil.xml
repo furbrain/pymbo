@@ -20,6 +20,7 @@
       <w>sigs</w>
       <w>stdbool</w>
       <w>stdint</w>
+      <w>strs</w>
       <w>subnode</w>
       <w>typesig</w>
       <w>vals</w>

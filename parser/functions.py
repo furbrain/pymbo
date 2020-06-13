@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Set
 
 import typed_ast.ast3 as ast
 
@@ -12,32 +12,24 @@ if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
 
-# noinspection PyPep8NamingK
+# noinspection PyPep8Naming
 class FunctionImplementation(ast.NodeVisitor):
     def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser"):
+        self.body: str
+        self.indent: int
+        self.retval: Code
+        self.all_paths_return: bool
+        self.primary_node = node
         self.module = module
         self.context = Context(module.context)
         self.funcs = module.funcs
         self.args = []
-        self.primary_node = node
-        self.all_paths_return = False
+        self.libraries: Set[str] = set()
         for arg, arg_type in zip(node.args.args, type_sig):
             code = Code(arg_type, is_arg=True, is_pointer=not arg_type.pass_by_value, code=arg.arg)
             self.context[arg.arg] = code
             self.args.append(code)
         self.generate_code()
-
-    def retval_in_c(self):
-        if self.retval.tp.pass_by_value:
-            return self.retval.tp.c_type
-        else:
-            return "void"
-
-    def params(self):
-        if self.retval.tp.pass_by_value:
-            return self.args
-        else:
-            return self.args + [self.retval]
 
     # noinspection PyAttributeOutsideInit
     def generate_code(self):
@@ -51,10 +43,23 @@ class FunctionImplementation(ast.NodeVisitor):
         if not self.all_paths_return:
             self.retval.assign_type(TypeDB.get_type_by_value(None), " as return value")
 
+    def retval_in_c(self):
+        if self.retval.tp.pass_by_value:
+            return self.retval.tp.c_type
+        else:
+            return "void"
+
+    def params(self):
+        if self.retval.tp.pass_by_value:
+            return self.args
+        else:
+            return self.args + [self.retval]
+
     def start_line(self, text: str) -> None:
         self.body += " " * self.indent
         self.body += text
 
+    # noinspection PyAttributeOutsideInit
     def visit_If(self, node: ast.If) -> None:
         test = self.get_expression_code(node.test)
         self.start_line("if ({}) {{\n".format(test.code))
@@ -82,6 +87,7 @@ class FunctionImplementation(ast.NodeVisitor):
         else:
             self.start_line(f"{self.retval.as_value()} = {result.code};\n")
             self.start_line("return;\n")
+        # noinspection PyAttributeOutsideInit
         self.all_paths_return = True
 
     def visit_Expr(self, node: ast.Expr) -> None:
@@ -102,15 +108,16 @@ class FunctionImplementation(ast.NodeVisitor):
                 if slice_type == "Index":
                     index = self.get_expression_code(n.slice.value)
                     setter = value.tp.get_method("set_item")
-                    code = setter.get_code(value, index, right)
+                    code = setter.get_code(self.context, value, index, right)
                     self.start_line(f"{code.code};\n")
                 else:
                     raise UnimplementedFeature("Slices not yet implemented")
 
     def get_expression_code(self, node: ast.AST) -> Code:
-        code, prepends = get_expression_code(node, self.module, self.context)
-        for line in prepends:
+        code = get_expression_code(node, self.module, self.context)
+        for line in code.prepends:
             self.start_line(line)
+        self.libraries.update(code.libraries)
         return code
 
     def generic_visit(self, node):
