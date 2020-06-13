@@ -28,22 +28,23 @@ class PymboTest(unittest.TestCase):
     def setUp(self) -> None:
         TypeDB.reset()
 
-    def translate(self, text: str) -> str:
+    def translate(self, text: str, check_result=True) -> str:
         text = textwrap.dedent(text)
         commented_original = textwrap.indent(self.id() + '\n\n' + text, "// ")
         self.results_file.write(commented_original)
         compiled_code = pymbo.convert(textwrap.dedent(text))
         self.results_file.write(compiled_code + '\n/*======================*/\n')
-        return self.compile_and_run(compiled_code)
+        return self.compile_and_run(compiled_code, check_result)
 
-    def compile_and_run(self, compiled_code):
+    def compile_and_run(self, compiled_code, check_result=True):
         c_name = os.path.join(self.build_dir, f"{self.id()}.c")
         exe_name = os.path.join(self.build_dir, f"{self.id()}.exe")
         with open(c_name, 'w') as c_file:
             c_file.write(compiled_code)
         self.assertEqual(0, os.system(f"gcc {c_name} -o {exe_name}"), "Compile Failed")
         result = subprocess.run(exe_name, stdout=subprocess.PIPE)
-        self.assertEqual(1, result.returncode, "Final code does not return True")
+        if check_result:
+            self.assertEqual(1, result.returncode, "Final code does not return True")
         if result.stdout:
             return str(result.stdout, encoding="utf-8")
         return ""

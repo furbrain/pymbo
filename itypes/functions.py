@@ -74,4 +74,4 @@ class PythonFunction(CMethod):
 
 class ComputedFunction(FunctionType):
     def get_code(self, context, *args: Code):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
