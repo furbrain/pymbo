@@ -48,6 +48,8 @@ class Code:
         else:
             return f"({self.code})."
 
+    def as_param(self):
+        return f"{self.tp.fn_type()} {self.code}"
 
 class Context:
     def __init__(self, parent: Optional["Context"] = None, fname="<string>"):

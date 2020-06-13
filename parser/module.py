@@ -51,7 +51,7 @@ class ModuleParser(ast.NodeVisitor):
             raise exc
 
     def create_code(self, include_type_funcs=False):
-        self.funcs.get_implementation("main", ())
+        self.funcs.get_func("main", ())
         code = ""
         if include_type_funcs:
             for t in TypeDB.types.values():

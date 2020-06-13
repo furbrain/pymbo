@@ -12,23 +12,19 @@ if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
 
-# noinspection PyPep8Naming
+# noinspection PyPep8NamingK
 class FunctionImplementation(ast.NodeVisitor):
     def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser"):
         self.module = module
-        self.body = ""
-        self.retval = Code(tp=None)
-        self.all_paths_return = False
         self.context = Context(module.context)
         self.funcs = module.funcs
         self.args = []
-        self.return_by_value = True
-        for arg, arg_type in zip(node.args.args, type_sig):
-            self.context[arg.arg] = Code(arg_type, is_arg=True, is_pointer=not arg_type.pass_by_value, code=arg.arg)
-            self.args += [arg_type.fn_type() + " " + arg.arg]
-        self.indent = 2
-        self.type_sig = type_sig
         self.primary_node = node
+        self.all_paths_return = False
+        for arg, arg_type in zip(node.args.args, type_sig):
+            code = Code(arg_type, is_arg=True, is_pointer=not arg_type.pass_by_value, code=arg.arg)
+            self.context[arg.arg] = code
+            self.args.append(code)
         self.generate_code()
 
     def retval_in_c(self):
@@ -37,16 +33,17 @@ class FunctionImplementation(ast.NodeVisitor):
         else:
             return "void"
 
-    def args_in_c(self):
+    def params(self):
         if self.retval.tp.pass_by_value:
             return self.args
         else:
-            return self.args + [f"{self.retval.tp.fn_type()} _retval"]
+            return self.args + [self.retval]
 
+    # noinspection PyAttributeOutsideInit
     def generate_code(self):
         self.body = ""
         self.indent = 2
-        self.retval = Code(tp=None)
+        self.retval = Code(tp=None, code="_retval", is_pointer=True)
         self.all_paths_return = False
         self.context.clear_temp_vars()
         for n in self.primary_node.body:
@@ -59,7 +56,7 @@ class FunctionImplementation(ast.NodeVisitor):
         self.body += text
 
     def visit_If(self, node: ast.If) -> None:
-        test = self.get_code(node.test)
+        test = self.get_expression_code(node.test)
         self.start_line("if ({}) {{\n".format(test.code))
         self.indent += 2
         for n in node.body:
@@ -78,21 +75,21 @@ class FunctionImplementation(ast.NodeVisitor):
         self.start_line("}\n")
 
     def visit_Return(self, node: ast.Return) -> None:
-        result = self.get_code(node.value)
+        result = self.get_expression_code(node.value)
         self.retval.assign_type(result.tp, " as return value")
         if self.retval.tp.pass_by_value:
             self.start_line(f"return {result.code};\n")
         else:
-            self.start_line(f"*_retval = {result.code};\n")
+            self.start_line(f"{self.retval.as_value()} = {result.code};\n")
             self.start_line("return;\n")
         self.all_paths_return = True
 
     def visit_Expr(self, node: ast.Expr) -> None:
-        result = self.get_code(node.value)
+        result = self.get_expression_code(node.value)
         self.start_line(result.code + ";\n")
 
     def visit_Assign(self, node: ast.Assign) -> None:
-        right = self.get_code(node.value)
+        right = self.get_expression_code(node.value)
         for n in node.targets:
             if isinstance(n, ast.Name):
                 left = self.context.setdefault(n.id, Code(tp=right.tp, code=n.id))
@@ -100,17 +97,17 @@ class FunctionImplementation(ast.NodeVisitor):
                     left.assign_type(right.tp)
                 self.start_line("{} = {};\n".format(left.code, right.as_value()))
             elif isinstance(n, ast.Subscript):
-                value = self.get_code(n.value)
+                value = self.get_expression_code(n.value)
                 slice_type = type(n.slice).__name__
                 if slice_type == "Index":
-                    index = self.get_code(n.slice.value)
+                    index = self.get_expression_code(n.slice.value)
                     setter = value.tp.get_method("set_item")
                     code = setter.get_code(value, index, right)
                     self.start_line(f"{code.code};\n")
                 else:
                     raise UnimplementedFeature("Slices not yet implemented")
 
-    def get_code(self, node: ast.AST) -> Code:
+    def get_expression_code(self, node: ast.AST) -> Code:
         code, prepends = get_expression_code(node, self.module, self.context)
         for line in prepends:
             self.start_line(line)

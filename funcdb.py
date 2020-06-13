@@ -4,6 +4,7 @@ from typing import Sequence, Dict, Optional, TYPE_CHECKING
 from typed_ast import ast3 as ast
 
 from itypes import InferredType
+from itypes.functions import PythonFunction, FunctionType
 from parser.functions import FunctionImplementation
 
 TypeSig = Sequence[InferredType]
@@ -15,52 +16,60 @@ class FuncDB:
     def __init__(self, module: "ModuleParser"):
         self.module = module
         self.func_nodes: Dict[str, ast.FunctionDef] = {}
-        self.func_implementations: Dict[str, Dict[TypeSig, FunctionImplementation]] = defaultdict(dict)
+        self.func_implementations: Dict[str, Dict[TypeSig, PythonFunction]] = defaultdict(dict)
 
-    def get_func(self, name: str, typesig: TypeSig) -> Optional[FunctionImplementation]:
+    def get_func(self, name: str, typesig: TypeSig) -> Optional[FunctionType]:
         if name in self.func_nodes:
             if typesig not in self.func_implementations[name]:
                 impl = FunctionImplementation(self.func_nodes[name], typesig, self.module)
-                self.func_implementations[name][typesig] = impl
+                func_name = self.get_func_name(name, typesig)
+                functype = PythonFunction(func_name,
+                                          [param.tp for param in impl.params()],
+                                          impl.retval.tp,
+                                          definition=self.get_definition(func_name, impl),
+                                          implementation=self.get_implementation(func_name, impl))
+                self.func_implementations[name][typesig] = functype
             return self.func_implementations[name][typesig]
         else:
             return None
 
     def get_func_name(self, name: str, typesig: TypeSig):
-        if len(self.func_implementations[name]) == 1:
+        if len(self.func_implementations[name]) == 0:
             return name
+        elif typesig in self.func_implementations[name]:
+            return self.func_implementations[name][typesig].name
         else:
             args = [str(x).strip("<>") for x in typesig]
             return name + "__" + '_'.join(args)
 
-    def get_signature(self, name: str, typesig: TypeSig):
-        func = self.get_func(name, typesig)
-        text = func.retval_in_c() + " " + self.get_func_name(name, typesig) + "(" + ', '.join(func.args_in_c()) + ")"
+    @staticmethod
+    def get_signature(func_name: str, impl: FunctionImplementation):
+        params = ', '.join(x.as_param() for x in impl.params())
+        text = f"{impl.retval_in_c()} {func_name}({params})"
         return text
 
-    def get_implementation(self, name: str, typesig: TypeSig, regenerate=False):
-        func = self.get_func(name, typesig)
-        text = self.get_signature(name, typesig) + " {\n"
-        text += func.get_variable_definitions()
+    def get_implementation(self, func_name: str, impl: FunctionImplementation, regenerate=False):
+        text = self.get_signature(func_name, impl) + " {\n"
+        text += impl.get_variable_definitions()
         if regenerate:
-            func.generate_code()
-        text += func.body
+            impl.generate_code()
+        text += impl.body
         text += "}"
         return text
 
-    def get_definition(self, name: str, typesig: TypeSig):
-        return self.get_signature(name, typesig) + ";\n"
+    def get_definition(self, func_name: str, impl: FunctionImplementation):
+        return self.get_signature(func_name, impl) + ";\n"
 
     def get_all_definitions(self):
         results = []
         for func, sigs in self.func_implementations.items():
-            results += [self.get_definition(func, sig) for sig in sigs]
+            results += [sig.definition for sig in sigs.values()]
         return results
 
     def get_all_implementations(self):
         results = []
         for func, sigs in self.func_implementations.items():
-            results += [self.get_implementation(func, sig, regenerate=True) for sig in sigs]
+            results += [sig.implementation for sig in sigs.values()]
         return results
 
     def add_function(self, node: ast.FunctionDef):

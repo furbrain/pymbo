@@ -126,21 +126,19 @@ class ExpressionParser(ExpressionBaseParser):
             func_type = self.funcs.get_func(name, typesig)
             if func_type is None:
                 raise exceptions.IdentifierNotFound(node.func)
-            func_name = self.funcs.get_func_name(name, typesig)
-            if not func_type.retval.tp.pass_by_value:
-                tmp = self.context.get_temp_var(func_type.retval.tp)
-                args.append(tmp)
-                args_code = [x.as_function_arg() for x in args]
-                self.prepends += [f"{func_name}({', '.join(args_code)});\n"]
-                return tmp
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
             func_type = func.tp.get_method(node.func.attr)
-            return func_type.get_code(func, *args)
+            args = [func] + args
         else:
             raise UnimplementedFeature("running function from subscripted arg??")
-        args_code = [x.code for x in args]
-        return Code(tp=func_type.retval.tp, code=f"{func_name}({', '.join(args_code)})")
+        if not func_type.retval.pass_by_value:
+            tmp = self.context.get_temp_var(func_type.retval)
+            args.append(tmp)
+            self.prepends += [f"{func_type.get_code(*args).code};\n"]
+            return tmp
+        else:
+            return func_type.get_code(*args)
 
     # def visit_Lambda(self, node):
     #     arg_names = [arg.arg for arg in node.args.args]

@@ -17,7 +17,7 @@ class FunctionType(InferredType):
 
     def check_code(self, args):
         if len(args) < len(self.args):
-            raise StaticTypeError(f"Not enough arguments (needs {len(self.args)}")
+            raise StaticTypeError(f"Not enough arguments (needs {len(self.args)}), given {args}")
         if len(args) > len(self.args):
             raise StaticTypeError(f"Too many arguments (needs {len(self.args)}")
         for i, (supplied, needed) in enumerate(zip(args, self.args)):
@@ -66,3 +66,7 @@ class InlineNativeMethod(FunctionType):
         # noinspection PyUnusedLocal
         arg_strings = [arg.as_function_arg() for arg in args]
         return Code(tp=self.retval, code=eval(f"f'{self.template}'"))
+
+
+class PythonFunction(NativeMethod):
+    pass
