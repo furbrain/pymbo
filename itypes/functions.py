@@ -1,19 +1,21 @@
-from typing import List
+from abc import ABCMeta, abstractmethod
+from typing import List, Dict
 
 from context import Code
 from exceptions import StaticTypeError
 from . import InferredType
 
 
-class FunctionType(InferredType):
+class FunctionType(InferredType, metaclass=ABCMeta):
     def __init__(self, name: str, args: List[InferredType], returns: InferredType):
         super().__init__()
         self.name = name
         self.args = args
         self.retval = returns
 
+    @abstractmethod
     def get_code(self, context, *args: Code):
-        raise NotImplementedError  # pragma: no cover
+        pass
 
     def check_code(self, args):
         if len(args) < len(self.args):
@@ -23,6 +25,22 @@ class FunctionType(InferredType):
         for i, (supplied, needed) in enumerate(zip(args, self.args)):
             if not needed.can_coerce_from(supplied.tp):
                 raise StaticTypeError(f"Argument {i + 1} should be {needed}, but is {supplied.tp} ")
+
+    @classmethod
+    @abstractmethod
+    def from_dict(cls, name, dct):
+        pass
+
+    @classmethod
+    def get_args_and_retval(cls, dct):
+        from itypes.typedb import TypeDB
+        args = [arg.strip() for arg in dct['args'].split(',')]
+        if args == ['']:
+            args = []
+        else:
+            args = [TypeDB.get_type_by_name(arg) for arg in args]
+        retval = TypeDB.get_type_by_name(dct['retval'])
+        return args, retval
 
 
 class CMethod(FunctionType):
@@ -36,6 +54,12 @@ class CMethod(FunctionType):
         self.definition = definition
         self.implementation = implementation
         self.type = "NATIVE FUNCTION"
+
+    @classmethod
+    def from_dict(cls, name: str, dct: Dict[str, str]):
+        args, retval = cls.get_args_and_retval(dct)
+        method = cls(name, args, retval, dct['def'], dct['imp'])
+        return method
 
     def __str__(self):
         args = [str(arg) for arg in self.args]
@@ -61,6 +85,12 @@ class InlineCMethod(FunctionType):
         args = [str(arg) for arg in self.args]
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
 
+    @classmethod
+    def from_dict(cls, name: str, dct: Dict[str, str]):
+        args, retval = cls.get_args_and_retval(dct)
+        method = cls(name, args, retval, dct['template'])
+        return method
+
     def get_code(self, context, *args: Code) -> Code:
         self.check_code(args)
         # noinspection PyUnusedLocal
@@ -72,6 +102,7 @@ class PythonFunction(CMethod):
     pass
 
 
-class ComputedFunction(FunctionType):
-    def get_code(self, context, *args: Code):
-        raise NotImplementedError  # pragma: no cover
+class ComputedFunction(FunctionType, metaclass=ABCMeta):
+    @classmethod
+    def from_dict(cls, name, dct):
+        pass

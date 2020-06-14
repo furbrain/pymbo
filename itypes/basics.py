@@ -71,34 +71,30 @@ class InferredType(metaclass=ABCMeta):
         else:
             return f"{self.c_type}*"
 
+    def render_template(self, dct):
+        for key, value in dct.items():
+            if isinstance(value, str):
+                if key != "template":
+                    dct[key] = dedent(eval(f'f"""{value}"""', {'self': self}))
+            elif isinstance(value, dict):
+                self.render_template(value)
+            else:
+                raise AttributeError(f"{type(value)} found in object spec!")
+
     def load_methods(self):
         if self.methods_loaded or self.spec_file == "":
             return
         from .functions import CMethod, InlineCMethod
+        methods = {"methods": CMethod, "inlines": InlineCMethod}
         c_func_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../c_functions"))
         with open(os.path.join(c_func_dir, self.spec_file)) as f:
             c_data = eval(f.read(), {"__builtins__": None})
-        self.definition = dedent(c_data["def"])
-        self.definition = eval(f'f"""{self.definition}"""')
-        for name, func in c_data["methods"].items():
-            vals, args, retval = self.get_vals_args_and_retval(func)
-            self.attrs[name] = CMethod(f'{self.prefix()}__{name}', args, retval, vals['def'], vals['imp'])
-        for name, func in c_data["inlines"].items():
-            vals, args, retval = self.get_vals_args_and_retval(func)
-            self.attrs[name] = InlineCMethod(f'{self.prefix()}__{name}', args, retval, func['template'])
+        self.render_template(c_data)
+        self.definition = c_data["def"]
+        for key, cls in methods.items():
+            for name, func in c_data[key].items():
+                self.attrs[name] = cls.from_dict(f'{self.prefix()}__{name}', func)
         self.methods_loaded = True
-
-    def get_vals_args_and_retval(self, func):
-        from itypes.typedb import TypeDB
-        vals = {name: dedent(eval(f'f"""{val}"""', {'self': self})) for name, val in func.items() if
-                name != "template"}
-        args = [arg.strip() for arg in vals['args'].split(',')]
-        if args != ['']:
-            args = [TypeDB.get_type_by_name(arg) for arg in args]
-        else:
-            args = []
-        retval = TypeDB.get_type_by_name(vals['retval'])
-        return vals, args, retval
 
     def has_attr(self, attr: str) -> bool:
         self.load_methods()
