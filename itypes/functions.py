@@ -1,4 +1,6 @@
+import re
 from abc import ABCMeta, abstractmethod
+from textwrap import indent
 from typing import List, Dict
 
 from context import Code
@@ -58,7 +60,18 @@ class CMethod(FunctionType):
     @classmethod
     def from_dict(cls, name: str, dct: Dict[str, str]):
         args, retval = cls.get_args_and_retval(dct)
-        method = cls(name, args, retval, dct['def'], dct['imp'])
+        arg_names = [arg_name.strip() for arg_name in dct['arg_names'].split(',')]
+        param_list = [f"{arg.fn_type()} {arg_name}" for arg, arg_name in zip(args, arg_names)]
+        if retval.pass_by_value:
+            signature = f"{retval.c_type} {name}({', '.join(param_list)})"
+        else:
+            param_list += [f"{retval.fn_type()} _retval"]
+            signature = f"void {name}({', '.join(param_list)})"
+            args.append(retval)
+            dct['imp'] = re.sub(r"return (.*?);", r"*_retval = \1; return;", dct['imp'])
+        implementation = f"{signature} {{{indent(dct['imp'], ' ' * 4)}}}\n"
+        definition = f"{signature};\n\n"
+        method = cls(name, args, retval, definition, implementation)
         return method
 
     def __str__(self):

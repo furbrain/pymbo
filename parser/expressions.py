@@ -144,10 +144,14 @@ class ExpressionParser(ExpressionBaseParser):
             args = [func] + args
         else:
             raise UnimplementedFeature("running function from subscripted arg??")
+        return self.call_function(func_type, *args)
+
+    def call_function(self, func_type, *args):
+        args = list(args)
         if not func_type.retval.pass_by_value:
             tmp = self.context.get_temp_var(func_type.retval)
             args.append(tmp)
-            self.prepends += [f"{func_type.get_code(self.context, *args).code};\n"]
+            tmp.prepends = [f"{func_type.get_code(self.context, *args).code};\n"]
             return tmp
         else:
             return func_type.get_code(self.context, *args)
@@ -194,7 +198,7 @@ class ExpressionParser(ExpressionBaseParser):
         if slice_type == "Index":
             index = self.visit(node.slice.value)
             accessor = value.tp.get_method("get_item")
-            return accessor.get_code(self.context, value, index)
+            return self.call_function(accessor, value, index)
         else:
             raise UnimplementedFeature("Slices not yet implemented")
 
@@ -206,34 +210,8 @@ class ExpressionParser(ExpressionBaseParser):
         return self.get_binary_op_code(left, node.ops[0], right)
 
     # def visit_ListComp(self, node):
-    #     scope = self.get_scope_for_comprehension(node)
-    #     target = get_expression_type(node.elt, scope)
-    #     return itypes.create_list(target)
-    #
-    # def visit_SetComp(self, node):
-    #     scope = self.get_scope_for_comprehension(node)
-    #     target = get_expression_type(node.elt, scope)
-    #     return itypes.create_set(target)
-    #
-    # def visit_DictComp(self, node):
-    #     scope = self.get_scope_for_comprehension(node)
-    #     key_target = get_expression_type(node.key, scope)
-    #     value_target = get_expression_type(node.value, scope)
-    #     return itypes.create_dict([key_target], [value_target])
-    #
-    # def visit_GeneratorExp(self, node):
-    #     scope = self.get_scope_for_comprehension(node)
-    #     target = get_expression_type(node.elt, scope)
-    #     return itypes.InferredIterator(target)
-    #
-    # def get_scope_for_comprehension(self, node):
-    #     from .assignment import assign_to_node
-    #     scope = self.scope
-    #     for generator in node.generators:
-    #         scope = scopes.Scope('__listcomp__', node.lineno, node.col_offset, parent=scope)
-    #         iterator = get_expression_type(generator.iter, scope)
-    #         assign_to_node(generator.target, iterator.get_iter(), scope)
-    #     return scope
+    #     pass
+
     def get_binary_op_code(self, left, op, right):
         method_name = OPS_MAP[op.__class__]
         try:

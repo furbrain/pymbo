@@ -11,6 +11,14 @@ class TestLists(PymboTest):
         """
         self.translate(code)
 
+    def test_nested(self):
+        code = """
+        def main():
+            a = [[1,2],[3,4],[5]]
+            return True
+        """
+        self.translate(code)
+
     def test_type_combining(self):
         code = """
         def main():
@@ -24,6 +32,23 @@ class TestLists(PymboTest):
         def main():
             a = [1,2,1,4]
             return a[2]
+        """
+        self.translate(code)
+
+    def test_get_nested(self):
+        code = """
+        def main():
+            a = [[1,2],[1,4]]
+            b = a[1]
+            return b[1]==4
+        """
+        self.translate(code)
+
+    def test_chained_subscript(self):
+        code = """
+        def main():
+            a = [[[1,2],[1,4]]]
+            return a[0][1][1]==4
         """
         self.translate(code)
 

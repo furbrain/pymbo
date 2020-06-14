@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Set
 import typed_ast.ast3 as ast
 
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature
+from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation
 from itypes import TypeDB
 from parser import get_expression_code
 
@@ -34,7 +34,7 @@ class FunctionImplementation(ast.NodeVisitor):
     # noinspection PyAttributeOutsideInit
     def generate_code(self):
         self.body = ""
-        self.indent = 2
+        self.indent = 4
         self.retval = Code(tp=None, code="_retval", is_pointer=True)
         self.all_paths_return = False
         self.context.clear_temp_vars()
@@ -93,6 +93,43 @@ class FunctionImplementation(ast.NodeVisitor):
     def visit_Expr(self, node: ast.Expr) -> None:
         result = self.get_expression_code(node.value)
         self.start_line(result.code + ";\n")
+
+    # noinspection PyAttributeOutsideInit
+    def visit_For(self, node: ast.For) -> None:
+        lst = self.get_expression_code(node.iter)
+        try:
+            get_item = lst.tp.get_method("get_item")
+        except InvalidOperation:
+            raise InvalidOperation(f"{lst.tp} is not iterable")
+        tmp_list = self.context.get_temp_var(lst.tp)
+        tmp_index = self.context.get_temp_var(TypeDB.get_type_by_name("int"))
+        length = tmp_list.tp.get_method("len")
+        length_code = length.get_code(self.context, tmp_list).code
+
+        # construct for statement
+        index_code = tmp_index.code
+        self.start_line(f"{tmp_list.as_value()} = {lst.as_value()};\n")
+        self.start_line(f"for({index_code}=0; {index_code} < {length_code}; {index_code}++) {{\n")
+        self.indent += 4
+        # create tmp_list
+        if isinstance(node.target, ast.Name):
+            elt = self.context.setdefault(node.target.id, Code(tp=get_item.retval, code=node.target.id))
+            if elt.tp != get_item.retval:
+                elt.assign_type(get_item.retval)
+            if elt.tp.pass_by_value:
+                self.start_line(f"{elt.code} = {get_item.get_code(self.context, tmp_list, tmp_index).code};\n")
+            else:
+                assignment = get_item.get_code(self.context, tmp_list, tmp_index, elt)
+                for p in assignment.prepends:
+                    self.start_line(p)
+                self.start_line(f"{assignment.code};\n")
+        else:
+            raise InvalidOperation("Can only use single loop var for now")
+        for statement in node.body:
+            self.visit(statement)
+        self.indent -= 4
+        self.start_line("}\n")
+        self.all_paths_return = False
 
     def visit_Assign(self, node: ast.Assign) -> None:
         right = self.get_expression_code(node.value)
