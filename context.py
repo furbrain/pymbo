@@ -73,6 +73,7 @@ class Context:
         self.fname = fname
         self.parent = parent
         self.dct: Dict[str, Code] = {}
+        self.temp_name_count = 1
         if self.parent is None:
             self.load_builtins()
 
@@ -111,13 +112,14 @@ class Context:
         tmps = [x for x in self.dct if x.startswith("_tmp")]
         for tmp in tmps:
             del self.dct[tmp]
+        self.temp_name_count = 1
 
     def get_temp_var(self, tp: "InferredType"):
-        i = 1
-        while True:
-            name = f"_tmp{i:d}"
-            if name not in self:
-                break
-            i += 1
+        name = self.get_temp_name()
         self[name] = Code(tp, code=name)
         return self[name]
+
+    def get_temp_name(self):
+        name = f"_tmp{self.temp_name_count:d}"
+        self.temp_name_count += 1
+        return name

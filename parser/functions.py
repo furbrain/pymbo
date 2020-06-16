@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Set
 import typed_ast.ast3 as ast
 
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation
+from exceptions import UnhandledNode, UnimplementedFeature
 from itypes import TypeDB
 from parser import get_expression_code
 
@@ -96,35 +96,25 @@ class FunctionImplementation(ast.NodeVisitor):
 
     # noinspection PyAttributeOutsideInit
     def visit_For(self, node: ast.For) -> None:
-        lst = self.get_expression_code(node.iter)
-        try:
-            get_item = lst.tp.get_method("get_item")
-        except InvalidOperation:
-            raise InvalidOperation(f"{lst.tp} is not iterable")
-        tmp_list = self.context.get_temp_var(lst.tp)
-        tmp_index = self.context.get_temp_var(TypeDB.get_type_by_name("int"))
-        length = tmp_list.tp.get_method("len")
-        length_code = length.get_code(self.context, tmp_list).code
+        # create list to iterate over
+        lst_name = self.context.get_temp_name()
+        assign_node = ast.Assign(targets=[ast.Name(id=lst_name, ctx=ast.Store())],
+                                 value=node.iter)
+        self.visit(assign_node)
+
+        lst = self.context[lst_name]
+        index = self.context.get_temp_var(TypeDB.get_type_by_name("int"))
+        length = lst.tp.get_method("len")
+        length_code = length.get_code(self.context, lst).code
 
         # construct for statement
-        index_code = tmp_index.code
-        self.start_line(f"{tmp_list.as_value()} = {lst.as_value()};\n")
-        self.start_line(f"for({index_code}=0; {index_code} < {length_code}; {index_code}++) {{\n")
+        self.start_line(f"for({index.code}=0; {index.code} < {length_code}; {index.code}++) {{\n")
         self.indent += 4
-        # create tmp_list
-        if isinstance(node.target, ast.Name):
-            elt = self.context.setdefault(node.target.id, Code(tp=get_item.retval, code=node.target.id))
-            if elt.tp != get_item.retval:
-                elt.assign_type(get_item.retval)
-            if elt.tp.pass_by_value:
-                self.start_line(f"{elt.code} = {get_item.get_code(self.context, tmp_list, tmp_index).code};\n")
-            else:
-                assignment = get_item.get_code(self.context, tmp_list, tmp_index, elt)
-                for p in assignment.prepends:
-                    self.start_line(p)
-                self.start_line(f"{assignment.code};\n")
-        else:
-            raise InvalidOperation("Can only use single loop var for now")
+        assign_node = ast.Assign(targets=[node.target],
+                                 value=ast.Subscript(value=ast.Name(id=lst_name, ctx=ast.Load()),
+                                                     slice=ast.Index(value=ast.Name(id=index.code, ctx=ast.Load())),
+                                                     ctx=ast.Load()))
+        self.visit(assign_node)
         for statement in node.body:
             self.visit(statement)
         self.indent -= 4
