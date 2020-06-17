@@ -14,14 +14,17 @@ if TYPE_CHECKING:  # pragma: no cover
 
 # noinspection PyPep8Naming
 class FunctionImplementation(ast.NodeVisitor):
-    def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser"):
+    def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser", context=None):
         self.body: str
         self.indent: int
         self.retval: Code
         self.all_paths_return: bool
         self.primary_node = node
         self.module = module
-        self.context = Context(module.context)
+        if context is None:
+            self.context = Context(module.context)
+        else:
+            self.context = Context(context)
         self.funcs = module.funcs
         self.args = []
         self.libraries: Set[str] = set()
@@ -141,9 +144,12 @@ class FunctionImplementation(ast.NodeVisitor):
                     raise UnimplementedFeature("Slices not yet implemented")
 
     def get_expression_code(self, node: ast.AST) -> Code:
-        code = get_expression_code(node, self.module, self.context)
-        for line in code.prepends:
-            self.start_line(line)
+        code, prepends = get_expression_code(node, self.module, self.context)
+        for line in prepends:
+            if isinstance(line, str):
+                self.start_line(line)  # if is a string, add string
+            else:
+                self.visit(line)  # otherwise treat as a node
         self.libraries.update(code.libraries)
         return code
 

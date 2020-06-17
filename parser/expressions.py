@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, List, Set
+from typing import TYPE_CHECKING, Optional, List, Set, Union
 
 import typed_ast.ast3 as ast
 from typed_ast.ast3 import NodeVisitor
@@ -15,16 +15,15 @@ if TYPE_CHECKING:  # pragma: no cover
     from parser.module import ModuleParser
 
 
-def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]) -> Code:
+def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]):
     if isinstance(expression, str):
         expression = ast.parse(expression)
     if context is None:
         context = module.context
     parser = ExpressionParser(module, context)
     code = parser.visit(expression)
-    code.prepends = parser.prepends
     code.libraries = parser.libraries
-    return code
+    return code, parser.prepends
 
 
 def get_constant_code(expression, module: "ModuleParser") -> Code:
@@ -51,7 +50,7 @@ class ExpressionBaseParser(NodeVisitor):
         self.module = module
         self.context = context
         self.funcs = module.funcs
-        self.prepends: List[str] = []
+        self.prepends: List[Union[str, ast.AST]] = []
         self.libraries: Set[str] = set()
 
     def visit_Num(self, node):
@@ -93,7 +92,6 @@ class ExpressionParser(ExpressionBaseParser):
 
     def visit(self, node):
         result = super().visit(node)
-        self.prepends += result.prepends
         self.libraries.update(result.libraries)
         return result
 
@@ -151,7 +149,7 @@ class ExpressionParser(ExpressionBaseParser):
         if not func_type.retval.pass_by_value:
             tmp = self.context.get_temp_var(func_type.retval)
             args.append(tmp)
-            tmp.prepends = [f"{func_type.get_code(self.context, *args).code};\n"]
+            self.prepends.append(f"{func_type.get_code(self.context, *args).code};\n")
             return tmp
         else:
             return func_type.get_code(self.context, *args)
@@ -209,8 +207,42 @@ class ExpressionParser(ExpressionBaseParser):
         right = self.visit(node.comparators[0])
         return self.get_binary_op_code(left, node.ops[0], right)
 
-    # def visit_ListComp(self, node):
-    #     pass
+    def visit_ListComp(self, node):
+        from parser.functions import FunctionImplementation
+
+        # calculate result type
+        if len(node.generators) > 1:
+            raise InvalidOperation("Only one for statement permitted in comprehensions")
+        comp = node.generators[0]
+        if len(comp.ifs) > 1:
+            raise InvalidOperation("Only one if statement allowed in List Comprehension")
+        assign_node = ast.Assign(targets=[comp.target],
+                                 value=ast.Subscript(value=comp.iter,
+                                                     slice=ast.Index(ast.Num(0))))
+        return_node = ast.Return(value=node.elt)
+        function_node = ast.FunctionDef(name="temp",
+                                        args=ast.arguments(args=[], vararg=None, kwonlyargs=[], kw_defaults=[],
+                                                           kwarg=None, defaults=[]),
+                                        body=[assign_node, return_node])
+        function_interpreter = FunctionImplementation(function_node, [], self.module, self.context)
+        result_type = TypeDB.get_list([function_interpreter.retval.tp])
+
+        # create temp list to hold values
+        result = self.context.get_temp_var(result_type)
+        self.prepends.append(f"{result.code} = {result_type.as_literal([])};\n")
+        # create for expression
+        append_node = ast.Expr(ast.Call(func=ast.Attribute(value=ast.Name(id=result.code, ctx=ast.Load()),
+                                                           attr="append",
+                                                           ctx=ast.Load()),
+                                        args=[node.elt],
+                                        keywords=[]))
+        if comp.ifs:
+            body = ast.If(test=comp.ifs[0], body=[append_node], orelse=[])
+        else:
+            body = append_node
+        for_node = ast.For(target=comp.target, iter=comp.iter, body=[body], orelse=[])
+        self.prepends.append(for_node)
+        return result
 
     def get_binary_op_code(self, left, op, right):
         method_name = OPS_MAP[op.__class__]
