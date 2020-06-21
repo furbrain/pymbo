@@ -5,9 +5,9 @@ from parser.module import ModuleParser
 from tests.utils import PymboTest
 
 BASIC_TESTS = {
-    "'a'": ("str", '"a"'),
-    '"a"': ("str", '"a"'),
-    'b"a"': ("str", '"a"'),
+    "'a'": ("str:40", '(str__40){"a"}'),
+    '"a"': ("str:40", '(str__40){"a"}'),
+    'b"a"': ("str:40", '(str__40){"a"}'),
     "1": ("int", "1"),
     "2.3": ("float", "2.3"),
     "5.0": ("float", "5.0"),
@@ -29,7 +29,7 @@ SIMPLE_OPS = {
 
 IF_EXPR = {
     "3 if True else 5": ("int", "true ? 3 : 5"),
-    "'fred' if False else 'george'": ("str", 'false ? "fred" : "george"'),
+    "'fred' if False else 'george'": ("str:40", 'false ? (str__40){"fred"} : (str__40){"george"}'),
     "2.3 if 3 < 10 else 5.7": ("float", '(3 < 10) ? 2.3 : 5.7')
 }
 
@@ -69,7 +69,7 @@ class TestExpressions(PymboTest):
     def compile_and_check_expressions(self, params):
         for code, expected in params.items():
             # FIXME - should work with all reasonable python expressions...
-            if expected[0] != "str":
+            if expected[0] != "str:40":
                 with self.subTest(code=code):
                     results, _ = get_expression_code(code, ModuleParser(), None)
                     expected_result = str(eval(code)).lower()

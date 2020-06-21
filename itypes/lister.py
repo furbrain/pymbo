@@ -13,7 +13,7 @@ class Lister(InferredType):
         self.maxlen = maxlen
         self.name = f"[{tp.name}:{maxlen}]"
         self.spec_file = "lists.py"
-        self.c_type = f"{self.prefix()}"
+        self.c_type = self.prefix()
 
     def prefix(self):
         return f"list{self.maxlen:d}__{self.tp.c_type}"

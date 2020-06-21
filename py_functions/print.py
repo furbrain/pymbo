@@ -18,9 +18,9 @@ class Print(ComputedFunction):
             elif arg.tp == "float":
                 format_strs.append("%f")
                 codes.append(arg.code)
-            elif arg.tp == "str":
+            elif arg.tp.name.strip("str__"):
                 format_strs.append("%s")
-                codes.append(arg.code)
+                codes.append(f"{arg.as_accessor()}text")
 
         codes = [f'"{" ".join(format_strs)}\\n"'] + codes
         return_code = Code(tp=TypeDB.get_type_by_value(None),

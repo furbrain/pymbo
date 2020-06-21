@@ -43,15 +43,6 @@ class BoolType(InferredType):
         return False
 
 
-class StrType(InferredType):
-    def __init__(self):
-        super().__init__()
-        self.type = str
-        self.name = "str"
-        self.spec_file = ""
-        self.c_type = "char *"
-
-
 class NoneType(InferredType):
     def __init__(self):
         super().__init__()

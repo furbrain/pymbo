@@ -23,7 +23,7 @@ class TestReUse(PymboTest):
         f = m.funcs
         i = TypeDB.get_type_by_name("int")
         g = TypeDB.get_type_by_name("float")
-        s = TypeDB.get_type_by_name("str")
+        s = TypeDB.get_string()
         f.get_func_name("adder", (i, i))
         f.get_func_name("adder", (s, s))
         f.get_func_name("adder", (g, g))

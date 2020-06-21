@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Set
 import typed_ast.ast3 as ast
 
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature
+from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation
 from itypes import TypeDB
 from parser import get_expression_code
 
@@ -21,6 +21,7 @@ class FunctionImplementation(ast.NodeVisitor):
         self.all_paths_return: bool
         self.primary_node = node
         self.module = module
+        self.in_try_block: bool
         if context is None:
             self.context = Context(module.context)
         else:
@@ -37,6 +38,7 @@ class FunctionImplementation(ast.NodeVisitor):
     # noinspection PyAttributeOutsideInit
     def generate_code(self):
         self.body = ""
+        self.in_try_block = False
         self.indent = 4
         self.retval = Code(tp=None, code="_retval", is_pointer=True)
         self.all_paths_return = False
@@ -83,6 +85,8 @@ class FunctionImplementation(ast.NodeVisitor):
         self.start_line("}\n")
 
     def visit_Return(self, node: ast.Return) -> None:
+        if self.in_try_block:
+            raise InvalidOperation("Cannot return from within try block")
         result = self.get_expression_code(node.value)
         self.retval.assign_type(result.tp, " as return value")
         if self.retval.tp.pass_by_value:
@@ -143,6 +147,43 @@ class FunctionImplementation(ast.NodeVisitor):
                 else:
                     raise UnimplementedFeature("Slices not yet implemented")
 
+    def visit_Try(self, node: ast.Try):
+        if node.orelse:
+            raise UnimplementedFeature("Can't have an else section to try")
+        if node.finalbody:
+            raise UnimplementedFeature("Can't have an finally section to try")
+        self.start_line("Try {\n")
+        self.indent += 4
+        self.in_try_block = True
+        for n in node.body:
+            self.visit(n)
+        # noinspection PyAttributeOutsideInit
+        self.in_try_block = False
+        self.indent -= 4
+        exception_name = self.context.get_temp_var(TypeDB.get_type_by_name("int"))
+        self.start_line(f"}} Catch({exception_name.code}) {{\n")
+        self.indent += 4
+        self.start_line(f"switch ({exception_name.code}) {{\n")
+        for handler in node.handlers:
+            if handler.type is None:
+                self.start_line("case default:\n")
+            else:
+                self.start_line(f"case {handler.type.id}:\n")
+            self.indent += 4
+            for n in handler.body:
+                self.visit(n)
+            self.start_line("break;\n")
+            self.indent -= 4
+        self.start_line("}")
+        self.indent -= 4
+        self.start_line("}")
+
+    def visit_Pass(self, node):
+        return
+
+    def visit_Raise(self, node):
+        self.start_line(f"Throw({node.exc.id});\n")
+
     def get_expression_code(self, node: ast.AST) -> Code:
         code, prepends = get_expression_code(node, self.module, self.context)
         for line in prepends:
@@ -160,5 +201,5 @@ class FunctionImplementation(ast.NodeVisitor):
         text = ""
         for name, var in self.context.locals():
             if not var.is_arg:
-                text += f"  {var.tp.c_type} {name};\n"
+                text += var.tp.declare(name)
         return text

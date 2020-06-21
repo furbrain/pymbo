@@ -40,11 +40,12 @@ class ExpressionBaseParser(NodeVisitor):
         False: "false",
         None: "null"
     }
-    BOOL = TypeDB.get_type_by_name('bool')
-    STR = TypeDB.get_type_by_name('str')
-    INT = TypeDB.get_type_by_name('int')
-    FLOAT = TypeDB.get_type_by_name('float')
-    NUMERIC_TYPES = (INT, FLOAT)
+
+    # BOOL = TypeDB.get_type_by_name('bool')
+    # STR = TypeDB.get_type_by_name('str')
+    # INT = TypeDB.get_type_by_name('int')
+    # FLOAT = TypeDB.get_type_by_name('float')
+    # NUMERIC_TYPES = (INT, FLOAT)
 
     def __init__(self, module: "ModuleParser", context: "Context"):
         self.module = module
@@ -57,10 +58,12 @@ class ExpressionBaseParser(NodeVisitor):
         return Code(tp=TypeDB.get_type_by_value(node.n), code=str(node.n))
 
     def visit_Str(self, node):
-        return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + node.s + '"')
+        tp = TypeDB.get_string()
+        return Code(tp=tp, code=tp.as_literal(node.s))
 
     def visit_Bytes(self, node):
-        return Code(tp=TypeDB.get_type_by_value(node.s), code='"' + str(node.s, 'utf-8') + '"')
+        tp = TypeDB.get_string()
+        return Code(tp=tp, code=tp.as_literal(str(node.s, 'utf-8')))
 
     def visit_NameConstant(self, node):
         return Code(tp=TypeDB.get_type_by_value(node.value), code=self.CONSTANTS_MAP[node.value])

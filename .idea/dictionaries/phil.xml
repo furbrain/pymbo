@@ -1,12 +1,18 @@
 <component name="ProjectDictionaryState">
   <dictionary name="phil">
     <words>
+      <w>cexception</w>
       <w>classiter</w>
       <w>coool</w>
+      <w>dirname</w>
       <w>elts</w>
+      <w>extern</w>
+      <w>initializers</w>
       <w>itypes</w>
       <w>lineno</w>
       <w>listcomp</w>
+      <w>longjmp</w>
+      <w>longjump</w>
       <w>lval</w>
       <w>maxlen</w>
       <w>mult</w>
@@ -17,6 +23,7 @@
       <w>pymbo</w>
       <w>retval</w>
       <w>retvals</w>
+      <w>setjmp</w>
       <w>sigs</w>
       <w>stdbool</w>
       <w>stdint</w>
@@ -24,6 +31,7 @@
       <w>subnode</w>
       <w>typesig</w>
       <w>vals</w>
+      <w>wmissing</w>
     </words>
   </dictionary>
 </component>

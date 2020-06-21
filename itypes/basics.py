@@ -71,6 +71,9 @@ class InferredType(metaclass=ABCMeta):
         else:
             return f"{self.c_type}*"
 
+    def declare(self, name: str):
+        return f"{self.c_type} {name};\n"
+
     def render_template(self, dct):
         for key, value in dct.items():
             if isinstance(value, str):

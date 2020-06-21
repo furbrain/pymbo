@@ -3,16 +3,15 @@ from typing import Optional, Dict, List
 from itypes import InferredType
 from itypes.lister import Lister
 from . import basics
-from .primitives import IntType, FloatType, BoolType, StrType, NoneType
+from .primitives import IntType, FloatType, BoolType, NoneType
+from .strings import StrType
 
 
 def get_builtins():
     types: Dict[str, InferredType] = {'int': IntType(),
                                       'float': FloatType(),
                                       'bool': BoolType(),
-                                      'str': StrType(),
                                       'None': NoneType()}
-    types["bytes"] = types["str"]
     return types
 
 
@@ -24,6 +23,13 @@ class TypeDB:
         if maxlen is None:
             maxlen = 40
         tp = Lister.from_elements(elements, maxlen)
+        return cls.types.setdefault(tp.name, tp)
+
+    @classmethod
+    def get_string(cls, maxlen: Optional[int] = None):
+        if maxlen is None:
+            maxlen = 40
+        tp = StrType(maxlen)
         return cls.types.setdefault(tp.name, tp)
 
     @classmethod
