@@ -13,9 +13,9 @@ BUILDING = True
 class PymboTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        result_dir = os.path.join(dir_path, "results")
-        cls.build_dir = os.path.join(dir_path, 'build', cls.__name__)
+        cls.dirname = os.path.dirname(os.path.realpath(__file__))
+        result_dir = os.path.join(cls.dirname, "results")
+        cls.build_dir = os.path.join(cls.dirname, 'build', cls.__name__)
         os.makedirs(result_dir, exist_ok=True)
         os.makedirs(cls.build_dir, exist_ok=True)
         cls.results_file = open(os.path.join(result_dir, cls.__name__ + ".c"), "w")
@@ -39,9 +39,11 @@ class PymboTest(unittest.TestCase):
     def compile_and_run(self, compiled_code, check_result=True):
         c_name = os.path.join(self.build_dir, f"{self.id()}.c")
         exe_name = os.path.join(self.build_dir, f"{self.id()}.exe")
+        library_dir = os.path.join(self.dirname, '..', 'c_libraries')
         with open(c_name, 'w') as c_file:
             c_file.write(compiled_code)
-        self.assertEqual(0, os.system(f"gcc {c_name} -o {exe_name}"), "Compile Failed")
+        self.assertEqual(0, os.system(f'gcc -I {library_dir} "{library_dir}/CException.c" {c_name} -o {exe_name}'),
+                         "Compile Failed")
         result = subprocess.run(exe_name, stdout=subprocess.PIPE)
         if check_result:
             self.assertEqual(1, result.returncode, "Final code does not return True")

@@ -5,6 +5,8 @@ from parser.module import ModuleParser
 INCLUDES = """
     #include <stdint.h>
     #include <stdbool.h>
+    #include <string.h>
+    #include "CExceptionConfig.h"
 """
 
 
