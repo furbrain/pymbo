@@ -1,7 +1,7 @@
 from typing import Optional, Dict, List
 
 from itypes import InferredType
-from itypes.lister import Lister
+from itypes.lists import ListType
 from . import basics
 from .primitives import IntType, FloatType, BoolType, NoneType
 from .strings import StrType
@@ -22,7 +22,7 @@ class TypeDB:
     def get_list(cls, elements: List[InferredType], maxlen: Optional[int] = None):
         if maxlen is None:
             maxlen = 40
-        tp = Lister.from_elements(elements, maxlen)
+        tp = ListType.from_elements(elements, maxlen)
         return cls.types.setdefault(tp.name, tp)
 
     @classmethod

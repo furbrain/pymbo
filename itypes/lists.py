@@ -4,7 +4,7 @@ import typing
 from itypes import InferredType, combine_types
 
 
-class Lister(InferredType):
+class ListType(InferredType):
     pass_by_value = False
 
     def __init__(self, tp: InferredType, maxlen: int):
@@ -22,6 +22,6 @@ class Lister(InferredType):
         return f"({self.c_type}){{{len(values)}, {{{', '.join(values)}}}}}"
 
     @classmethod
-    def from_elements(cls, types: typing.List[InferredType], maxlen: int) -> "Lister":
+    def from_elements(cls, types: typing.List[InferredType], maxlen: int) -> "ListType":
         tp = functools.reduce(combine_types, types)
         return cls(tp, maxlen)
