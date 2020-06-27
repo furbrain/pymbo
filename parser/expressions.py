@@ -26,10 +26,12 @@ def get_expression_code(expression, module: "ModuleParser", context: Optional[Co
     return code, parser.prepends
 
 
-def get_constant_code(expression, module: "ModuleParser") -> Code:
+def get_constant_code(expression, module: "ModuleParser", context=None) -> Code:
     if isinstance(expression, str):
         expression = ast.parse(expression)
-    parser = ConstantParser(module, module.context)
+    if context is None:
+        context = module.context
+    parser = ConstantParser(module, context)
     return parser.visit(expression)
 
 
@@ -164,8 +166,7 @@ class ExpressionParser(ExpressionBaseParser):
     #
     def visit_Attribute(self, node):
         value = self.visit(node.value)
-        code = f"{value.as_accessor()}{node.attr}"
-        return Code(tp=value.tp.get_attr(node.attr), code=code)
+        return value.tp.get_attr_code(node.attr, value)
 
     def visit_Module(self, node):
         return self.visit(node.body[0])

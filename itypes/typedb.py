@@ -1,5 +1,6 @@
 from typing import Optional, Dict, List
 
+from exceptions import InvalidOperation
 from itypes import InferredType
 from itypes.lists import ListType
 from . import basics
@@ -46,3 +47,9 @@ class TypeDB:
     @classmethod
     def reset(cls):
         cls.types = get_builtins()
+
+    @classmethod
+    def add_type(cls, tp: InferredType):
+        if tp.name in cls.types:
+            raise InvalidOperation("Duplicate type {tp.name}")
+        cls.types[tp.name] = tp

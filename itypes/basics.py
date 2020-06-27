@@ -3,6 +3,7 @@ from abc import ABCMeta
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
+from context import Code
 from exceptions import InvalidOperation, StaticTypeError
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -108,6 +109,9 @@ class InferredType(metaclass=ABCMeta):
         if attr not in self.attrs:
             raise InvalidOperation(f"Get attr {attr} not valid for {self.name}")
         return self.attrs[attr]
+
+    def get_attr_code(self, attr: str, obj: Code) -> Code:
+        raise InvalidOperation(f"Attribute access not valid for {self.name}")
 
     def get_method(self, attr: str) -> "FunctionType":
         from itypes.functions import FunctionType

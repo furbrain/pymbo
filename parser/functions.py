@@ -146,6 +146,9 @@ class FunctionImplementation(ast.NodeVisitor):
                     self.start_line(f"{code.code};\n")
                 else:
                     raise UnimplementedFeature("Slices not yet implemented")
+            elif isinstance(n, ast.Attribute):
+                left = self.get_expression_code(n)
+                self.start_line(f"{left.code} = {right.code};\n")
 
     def visit_Try(self, node: ast.Try):
         if node.orelse:

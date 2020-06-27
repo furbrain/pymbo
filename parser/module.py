@@ -7,6 +7,7 @@ from context import Context, Code
 from exceptions import PymboError, UnhandledNode, StaticTypeError, InvalidOperation
 from funcdb import FuncDB
 from itypes.typedb import TypeDB
+from parser.classes import ClassParser
 from parser.expressions import get_constant_code
 
 
@@ -73,8 +74,9 @@ class ModuleParser(ast.NodeVisitor):
         self.funcs.add_function(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        # ignore any defs within classes
-        pass
+        cls = ClassParser(node, self)
+        self.context[node.name] = Code(tp=cls.get_type(), code=node.name)
+        TypeDB.add_type(cls.get_type())
 
     def visit_Module(self, node):
         super().generic_visit(node)
