@@ -14,26 +14,15 @@ class PymboTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.dirname = os.path.dirname(os.path.realpath(__file__))
-        result_dir = os.path.join(cls.dirname, "results")
         cls.build_dir = os.path.join(cls.dirname, 'build', cls.__name__)
-        os.makedirs(result_dir, exist_ok=True)
         os.makedirs(cls.build_dir, exist_ok=True)
-        cls.results_file = open(os.path.join(result_dir, cls.__name__ + ".c"), "w")
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        # noinspection PyUnresolvedReferences
-        cls.results_file.close()
 
     def setUp(self) -> None:
         TypeDB.reset()
 
     def translate(self, text: str, check_result=True) -> str:
         text = textwrap.dedent(text)
-        commented_original = textwrap.indent(self.id() + '\n\n' + text, "// ")
-        self.results_file.write(commented_original)
         compiled_code = pymbo.convert(textwrap.dedent(text))
-        self.results_file.write(compiled_code + '\n/*======================*/\n')
         return self.compile_and_run(compiled_code, check_result)
 
     def compile_and_run(self, compiled_code, check_result=True):
