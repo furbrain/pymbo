@@ -6,6 +6,7 @@ from typed_ast import ast3 as ast
 from context import Context, Code
 from exceptions import PymboError, UnhandledNode, StaticTypeError, InvalidOperation
 from funcdb import FuncDB
+from itypes.functions import MultiFunction
 from itypes.typedb import TypeDB
 from parser.classes import ClassParser
 from parser.expressions import get_constant_code
@@ -52,10 +53,8 @@ class ModuleParser(ast.NodeVisitor):
             raise exc
 
     def create_code(self, include_type_funcs=False):
-        self.funcs.get_func("main", ())
+        self.context["main"].tp.get_fixed_function(self.context)
         code = ""
-        for lib in self.funcs.libraries:
-            code += f"#include <{lib}.h>\n"
         if include_type_funcs:
             for t in TypeDB.types.values():
                 code += t.get_type_def()
@@ -63,15 +62,14 @@ class ModuleParser(ast.NodeVisitor):
         if include_type_funcs:
             for t in TypeDB.types.values():
                 code += t.get_definitions()
+            for t in TypeDB.types.values():
                 code += t.get_implementations()
-        code += "\n".join(self.funcs.get_all_definitions())
-        code += "\n"
-        code += "\n\n".join(self.funcs.get_all_implementations())
         return code
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        # ignore any inner function defs - not supported...
-        self.funcs.add_function(node)
+        tp = MultiFunction(node, self)
+        self.context[node.name] = Code(tp=tp, code=node.name)
+        TypeDB.add_type(tp)
 
     def visit_ClassDef(self, node: ast.ClassDef):
         cls = ClassParser(node, self)

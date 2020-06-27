@@ -6,8 +6,8 @@ not bitwise operator for float
 
 and tests for the above obvsballs
 
+library imports need tidying - currently just missing stdio for print.
 
-maybe get printf working?? - need to work on
 some more list actions??
 list multiplication could be coool.... but would need to get temp variables up and running....
 
@@ -15,6 +15,8 @@ consider converting strings from struct wrapper to pure char arrays to simplify 
 would need to make an assign function on types
 
 work out some sort of class function implementation??
+ - working on it
+
 
 
 Add more test functions

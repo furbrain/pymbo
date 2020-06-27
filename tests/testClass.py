@@ -1,3 +1,5 @@
+import unittest
+
 from exceptions import InvalidOperation
 from tests.utils import PymboTest
 
@@ -28,6 +30,19 @@ class TestClass(PymboTest):
         def main():
             A.b = True
             return A.b
+        """
+        self.translate(code)
+
+    @unittest.skip
+    def testClassInstanceCreate(self):
+        code = """
+        class A:
+            def __init__(self, retval):
+                self.b = retval
+                
+        def main():
+            a = A(True)
+            return a.b
         """
         self.translate(code)
 

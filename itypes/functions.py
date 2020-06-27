@@ -1,29 +1,39 @@
 import re
 from abc import ABCMeta, abstractmethod
 from textwrap import indent
-from typing import List, Dict
+from typing import List, Dict, Tuple, TYPE_CHECKING
 
-from context import Code
-from exceptions import StaticTypeError
+import typed_ast.ast3 as ast
+
+from context import Code, Context
+from exceptions import StaticTypeError, InvalidOperation
 from . import InferredType
 
+if TYPE_CHECKING:
+    from parser import FunctionImplementation
 
-class FunctionType(InferredType, metaclass=ABCMeta):
-    def __init__(self, name: str, args: List[InferredType], returns: InferredType):
+
+class FunctionType(InferredType):
+    def __init__(self, name: str):
         super().__init__()
         self.name = name
-        self.args = args
-        self.retval = returns
 
     @abstractmethod
     def get_code(self, context, *args: Code):
         pass
 
+
+class FixedFunctionType(FunctionType, metaclass=ABCMeta):
+    def __init__(self, name: str, args: List[InferredType], returns: InferredType):
+        super().__init__(name)
+        self.args = args
+        self.retval = returns
+
     def check_code(self, args):
         if len(args) < len(self.args):
             raise StaticTypeError(f"Not enough arguments (needs {len(self.args)}), given {args}")
         if len(args) > len(self.args):
-            raise StaticTypeError(f"Too many arguments (needs {len(self.args)}")
+            raise StaticTypeError(f"Too many arguments (needs {len(self.args)})")
         for i, (supplied, needed) in enumerate(zip(args, self.args)):
             if not needed.can_coerce_from(supplied.tp):
                 raise StaticTypeError(f"Argument {i + 1} should be {needed}, but is {supplied.tp} ")
@@ -45,7 +55,7 @@ class FunctionType(InferredType, metaclass=ABCMeta):
         return args, retval
 
 
-class CMethod(FunctionType):
+class CMethod(FixedFunctionType):
     def __init__(self,
                  name: str,
                  args: List[InferredType],
@@ -84,7 +94,7 @@ class CMethod(FunctionType):
         return Code(tp=self.retval, code=f"{self.name}({', '.join(arg_strings)})")
 
 
-class InlineCMethod(FunctionType):
+class InlineCMethod(FixedFunctionType):
     def __init__(self,
                  name: str,
                  args: List[InferredType],
@@ -115,7 +125,80 @@ class PythonFunction(CMethod):
     pass
 
 
-class ComputedFunction(FunctionType, metaclass=ABCMeta):
+class ComputedFunction(FixedFunctionType, metaclass=ABCMeta):
     @classmethod
     def from_dict(cls, name, dct):
         pass
+
+
+TypeSig = Tuple[InferredType]
+
+
+class MultiFunction(FunctionType):
+    """This function represents a python function in the code to be translated
+    It can be implemented in several different ways, and should possibly register itself with TypeDB"""
+
+    def __init__(self, node: ast.FunctionDef, module):
+        super().__init__(node.name)
+        if node.args.vararg:
+            raise InvalidOperation("Variable number args not permitted")
+        if node.args.kwarg:
+            raise InvalidOperation("Arbitrary kwargs not permitted")
+        if node.args.kwonlyargs:
+            raise InvalidOperation("Keyword only arguments not permitted")
+        self.arg_names = node.args.args
+        self.implementations: Dict[TypeSig, PythonFunction] = {}
+        self.node = node
+        self.module = module
+
+    def get_code(self, context, *args: Code):
+        func = self.get_fixed_function(context, *args)
+        return func.get_code(context, args)
+
+    def get_definitions(self):
+        return "".join(imp.definition for imp in self.implementations.values())
+
+    def get_implementations(self):
+        return "".join(imp.implementation for imp in self.implementations.values())
+
+    @staticmethod
+    def get_signature(func_name: str, impl: "FunctionImplementation"):
+        params = ', '.join(x.as_param() for x in impl.params())
+        text = f"{impl.retval_in_c()} {func_name}({params})"
+        return text
+
+    def get_func_name(self, typesig: TypeSig):
+        if len(self.implementations) == 0:
+            return self.name
+        elif typesig in self.implementations:
+            return self.implementations[typesig].name
+        else:
+            args = [str(x.c_type) for x in typesig]
+            return self.name + "__" + '_'.join(args)
+
+    def get_implementation(self, func_name: str, impl: "FunctionImplementation", regenerate=False):
+        text = self.get_signature(func_name, impl) + " {\n"
+        text += impl.get_variable_definitions()
+        if regenerate:
+            impl.generate_code()
+        text += impl.body
+        text += "}"
+        return text
+
+    def get_definition(self, func_name: str, impl: "FunctionImplementation"):
+        return self.get_signature(func_name, impl) + ";\n"
+
+    def get_fixed_function(self, context: Context, *args: Code):
+        typesig = tuple(arg.tp for arg in args)
+        if typesig not in self.implementations:
+            from parser import FunctionImplementation
+            impl = FunctionImplementation(self.node, typesig, self.module)
+            func_name = self.get_func_name(typesig)
+            functype = PythonFunction(func_name,
+                                      [param.tp for param in impl.params()],
+                                      impl.retval.tp,
+                                      definition=self.get_definition(func_name, impl),
+                                      implementation=self.get_implementation(func_name, impl))
+            # self.libraries.update(impl.libraries)
+            self.implementations[typesig] = functype
+        return self.implementations[typesig]

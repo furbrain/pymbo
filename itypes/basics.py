@@ -7,7 +7,7 @@ from context import Code
 from exceptions import InvalidOperation, StaticTypeError
 
 if TYPE_CHECKING:  # pragma: no cover
-    from itypes.functions import FunctionType
+    from itypes.functions import FixedFunctionType
 
 def get_type_name(obj):
     if isinstance(obj, type):
@@ -113,10 +113,10 @@ class InferredType(metaclass=ABCMeta):
     def get_attr_code(self, attr: str, obj: Code) -> Code:
         raise InvalidOperation(f"Attribute access not valid for {self.name}")
 
-    def get_method(self, attr: str) -> "FunctionType":
-        from itypes.functions import FunctionType
+    def get_method(self, attr: str) -> "FixedFunctionType":
+        from itypes.functions import FixedFunctionType
         tp = self.get_attr(attr)
-        if isinstance(tp, FunctionType):
+        if isinstance(tp, FixedFunctionType):
             self.functions.add(attr)
             return tp
         raise InvalidOperation(f"Attribute {attr} is not a method")

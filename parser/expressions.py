@@ -7,7 +7,7 @@ import exceptions
 import itypes
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature, StaticTypeError, InvalidOperation, UnknownVariable
-from itypes.functions import InlineCMethod
+from itypes.functions import InlineCMethod, MultiFunction
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
 
@@ -136,11 +136,7 @@ class ExpressionParser(ExpressionBaseParser):
             try:
                 func_type = self.visit(node.func).tp
             except UnknownVariable:
-                name = node.func.id
-                typesig = tuple([x.tp for x in args])
-                func_type = self.funcs.get_func(name, typesig)
-                if func_type is None:
-                    raise exceptions.IdentifierNotFound(node.func)
+                raise exceptions.IdentifierNotFound(node.func)
         elif isinstance(node.func, ast.Attribute):
             func = self.visit(node.func.value)
             func_type = func.tp.get_method(node.func.attr)
@@ -151,6 +147,8 @@ class ExpressionParser(ExpressionBaseParser):
 
     def call_function(self, func_type, *args):
         args = list(args)
+        if isinstance(func_type, MultiFunction):
+            func_type = func_type.get_fixed_function(self.context, *args)
         if not func_type.retval.pass_by_value:
             tmp = self.context.get_temp_var(func_type.retval)
             args.append(tmp)

@@ -4,7 +4,7 @@ from typing import Sequence, Dict, Optional, TYPE_CHECKING, Set
 from typed_ast import ast3 as ast
 
 from itypes import InferredType
-from itypes.functions import PythonFunction, FunctionType
+from itypes.functions import PythonFunction, FixedFunctionType
 from parser.functions import FunctionImplementation
 
 TypeSig = Sequence[InferredType]
@@ -19,7 +19,7 @@ class FuncDB:
         self.func_implementations: Dict[str, Dict[TypeSig, PythonFunction]] = defaultdict(dict)
         self.libraries: Set[str] = set()
 
-    def get_func(self, name: str, typesig: TypeSig) -> Optional[FunctionType]:
+    def get_func(self, name: str, typesig: TypeSig) -> Optional[FixedFunctionType]:
         if name in self.func_nodes:
             if typesig not in self.func_implementations[name]:
                 impl = FunctionImplementation(self.func_nodes[name], typesig, self.module)
@@ -41,7 +41,7 @@ class FuncDB:
         elif typesig in self.func_implementations[name]:
             return self.func_implementations[name][typesig].name
         else:
-            args = [str(x).strip("<>") for x in typesig]
+            args = [str(x.c_type).strip("<>") for x in typesig]
             return name + "__" + '_'.join(args)
 
     @staticmethod
