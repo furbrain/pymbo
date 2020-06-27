@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, List, Set, Union
+from typing import List, Set, Union
 
 import typed_ast.ast3 as ast
 from typed_ast.ast3 import NodeVisitor
@@ -11,27 +11,20 @@ from itypes.functions import InlineCMethod, MultiFunction
 from itypes.typedb import TypeDB
 from parser.binops import OPS_MAP
 
-if TYPE_CHECKING:  # pragma: no cover
-    from parser.module import ModuleParser
 
-
-def get_expression_code(expression, module: "ModuleParser", context: Optional[Context]):
+def get_expression_code(expression, context: Context):
     if isinstance(expression, str):
         expression = ast.parse(expression)
-    if context is None:
-        context = module.context
-    parser = ExpressionParser(module, context)
+    parser = ExpressionParser(context)
     code = parser.visit(expression)
     code.libraries = parser.libraries
     return code, parser.prepends
 
 
-def get_constant_code(expression, module: "ModuleParser", context=None) -> Code:
+def get_constant_code(expression, context: Context) -> Code:
     if isinstance(expression, str):
         expression = ast.parse(expression)
-    if context is None:
-        context = module.context
-    parser = ConstantParser(module, context)
+    parser = ConstantParser(context)
     return parser.visit(expression)
 
 
@@ -49,10 +42,8 @@ class ExpressionBaseParser(NodeVisitor):
     # FLOAT = TypeDB.get_type_by_name('float')
     # NUMERIC_TYPES = (INT, FLOAT)
 
-    def __init__(self, module: "ModuleParser", context: "Context"):
-        self.module = module
+    def __init__(self, context: "Context"):
         self.context = context
-        self.funcs = module.funcs
         self.prepends: List[Union[str, ast.AST]] = []
         self.libraries: Set[str] = set()
 
@@ -148,7 +139,7 @@ class ExpressionParser(ExpressionBaseParser):
     def call_function(self, func_type, *args):
         args = list(args)
         if isinstance(func_type, MultiFunction):
-            func_type = func_type.get_fixed_function(self.context, *args)
+            func_type = func_type.get_fixed_function(*args)
         if not func_type.retval.pass_by_value:
             tmp = self.context.get_temp_var(func_type.retval)
             args.append(tmp)
@@ -226,7 +217,7 @@ class ExpressionParser(ExpressionBaseParser):
                                         args=ast.arguments(args=[], vararg=None, kwonlyargs=[], kw_defaults=[],
                                                            kwarg=None, defaults=[]),
                                         body=[assign_node, return_node])
-        function_interpreter = FunctionImplementation(function_node, [], self.module, self.context)
+        function_interpreter = FunctionImplementation(function_node, (), self.context)
         result_type = TypeDB.get_list([function_interpreter.retval.tp])
 
         # create temp list to hold values

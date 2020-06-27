@@ -4,8 +4,7 @@ import traceback
 from typed_ast import ast3 as ast
 
 from context import Context, Code
-from exceptions import PymboError, UnhandledNode, StaticTypeError, InvalidOperation
-from funcdb import FuncDB
+from exceptions import PymboError, UnhandledNode, StaticTypeError, InvalidOperation, TranslationError
 from itypes.functions import MultiFunction
 from itypes.typedb import TypeDB
 from parser.classes import ClassParser
@@ -15,7 +14,6 @@ from parser.expressions import get_constant_code
 # noinspection PyPep8Naming
 class ModuleParser(ast.NodeVisitor):
     def __init__(self):
-        self.funcs = FuncDB(self)
         self.context = Context()
         self.text = ""
         self.name = ""
@@ -53,7 +51,14 @@ class ModuleParser(ast.NodeVisitor):
             raise exc
 
     def create_code(self, include_type_funcs=False):
-        self.context["main"].tp.get_fixed_function(self.context)
+        if "main" in self.context:
+            main_func = self.context["main"].tp
+            if not isinstance(main_func, MultiFunction):
+                raise TranslationError("No main function")
+        else:
+            raise TranslationError("No main function")
+
+        main_func.get_fixed_function()
         code = ""
         if include_type_funcs:
             for t in TypeDB.types.values():
@@ -67,7 +72,7 @@ class ModuleParser(ast.NodeVisitor):
         return code
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        tp = MultiFunction(node, self)
+        tp = MultiFunction(node, self.context)
         self.context[node.name] = Code(tp=tp, code=node.name)
         TypeDB.add_type(tp)
 
@@ -80,7 +85,7 @@ class ModuleParser(ast.NodeVisitor):
         super().generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign):
-        right = get_constant_code(node.value, self)
+        right = get_constant_code(node.value, self.context)
         for n in node.targets:
             if isinstance(n, ast.Name):
                 if n.id in self.context:

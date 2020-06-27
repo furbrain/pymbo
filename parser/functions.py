@@ -1,32 +1,23 @@
-from typing import TYPE_CHECKING, Set
+from typing import Set
 
 import typed_ast.ast3 as ast
 
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation
 from itypes import TypeDB
+from itypes.functions import TypeSig
 from parser import get_expression_code
-
-if TYPE_CHECKING:  # pragma: no cover
-    from funcdb import TypeSig
-    from parser.module import ModuleParser
 
 
 # noinspection PyPep8Naming
 class FunctionImplementation(ast.NodeVisitor):
-    def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", module: "ModuleParser", context=None):
+    def __init__(self, node: ast.FunctionDef, type_sig: "TypeSig", context: Context):
         self.body: str
         self.indent: int
         self.retval: Code
         self.all_paths_return: bool
         self.primary_node = node
-        self.module = module
-        self.in_try_block: bool
-        if context is None:
-            self.context = Context(module.context)
-        else:
-            self.context = Context(context)
-        self.funcs = module.funcs
+        self.context = Context(context)
         self.args = []
         self.libraries: Set[str] = set()
         for arg, arg_type in zip(node.args.args, type_sig):
@@ -188,7 +179,7 @@ class FunctionImplementation(ast.NodeVisitor):
         self.start_line(f"Throw({node.exc.id});\n")
 
     def get_expression_code(self, node: ast.AST) -> Code:
-        code, prepends = get_expression_code(node, self.module, self.context)
+        code, prepends = get_expression_code(node, self.context)
         for line in prepends:
             if isinstance(line, str):
                 self.start_line(line)  # if is a string, add string

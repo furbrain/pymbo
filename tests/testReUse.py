@@ -20,13 +20,9 @@ class TestReUse(PymboTest):
         tree = ast.parse(TEST_CODE)
         m = ModuleParser()
         m.visit(tree)
-        f = m.funcs
-        i = TypeDB.get_type_by_name("int")
-        g = TypeDB.get_type_by_name("float")
-        s = TypeDB.get_string()
-        f.get_func_name("adder", (i, i))
-        f.get_func_name("adder", (s, s))
-        f.get_func_name("adder", (g, g))
+        TypeDB.get_type_by_name("int")
+        TypeDB.get_type_by_name("float")
+        TypeDB.get_string()
 
     def test_conversion(self):
         self.translate(TEST_CODE)

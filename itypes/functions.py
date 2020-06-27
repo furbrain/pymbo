@@ -1,7 +1,7 @@
 import re
 from abc import ABCMeta, abstractmethod
 from textwrap import indent
-from typing import List, Dict, Tuple, TYPE_CHECKING
+from typing import List, Dict, Sequence, TYPE_CHECKING
 
 import typed_ast.ast3 as ast
 
@@ -131,14 +131,14 @@ class ComputedFunction(FixedFunctionType, metaclass=ABCMeta):
         pass
 
 
-TypeSig = Tuple[InferredType]
+TypeSig = Sequence[InferredType]
 
 
 class MultiFunction(FunctionType):
     """This function represents a python function in the code to be translated
     It can be implemented in several different ways, and should possibly register itself with TypeDB"""
 
-    def __init__(self, node: ast.FunctionDef, module):
+    def __init__(self, node: ast.FunctionDef, context: Context):
         super().__init__(node.name)
         if node.args.vararg:
             raise InvalidOperation("Variable number args not permitted")
@@ -149,11 +149,11 @@ class MultiFunction(FunctionType):
         self.arg_names = node.args.args
         self.implementations: Dict[TypeSig, PythonFunction] = {}
         self.node = node
-        self.module = module
+        self.context = context
 
     def get_code(self, context, *args: Code):
-        func = self.get_fixed_function(context, *args)
-        return func.get_code(context, args)
+        func = self.get_fixed_function(*args)
+        return func.get_code(context, *args)
 
     def get_definitions(self):
         return "".join(imp.definition for imp in self.implementations.values())
@@ -188,11 +188,11 @@ class MultiFunction(FunctionType):
     def get_definition(self, func_name: str, impl: "FunctionImplementation"):
         return self.get_signature(func_name, impl) + ";\n"
 
-    def get_fixed_function(self, context: Context, *args: Code):
-        typesig = tuple(arg.tp for arg in args)
+    def get_fixed_function(self, *args: Code):
+        typesig = tuple(arg.tp for arg in args if arg.tp is not None)
         if typesig not in self.implementations:
             from parser import FunctionImplementation
-            impl = FunctionImplementation(self.node, typesig, self.module)
+            impl = FunctionImplementation(self.node, typesig, self.context)
             func_name = self.get_func_name(typesig)
             functype = PythonFunction(func_name,
                                       [param.tp for param in impl.params()],

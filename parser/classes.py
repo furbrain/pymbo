@@ -32,12 +32,15 @@ class ClassParser(ast.NodeVisitor):
         return
 
     def visit_Assign(self, node: ast.Assign):
-        right = get_constant_code(node.value, self.module, self.context)
+        right = get_constant_code(node.value, self.module.context)
         for t in node.targets:
             if isinstance(t, ast.Name):
                 self.cls.add_class_var(t.id, right)
             else:
                 raise InvalidOperation("Class variables must be simple names")
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        pass
 
     def generic_visit(self, node):
         raise UnhandledNode(node)
