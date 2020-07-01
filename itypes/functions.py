@@ -80,7 +80,7 @@ class CMethod(FixedFunctionType):
             args.append(retval)
             dct['imp'] = re.sub(r"return (.*?);", r"*_retval = \1; return;", dct['imp'])
         implementation = f"{signature} {{{indent(dct['imp'], ' ' * 4)}}}\n"
-        definition = f"{signature};\n\n"
+        definition = f"{signature};\n"
         method = cls(name, args, retval, definition, implementation)
         return method
 
@@ -138,8 +138,10 @@ class MultiFunction(FunctionType):
     """This function represents a python function in the code to be translated
     It can be implemented in several different ways, and should possibly register itself with TypeDB"""
 
-    def __init__(self, node: ast.FunctionDef, context: Context):
-        super().__init__(node.name)
+    def __init__(self, node: ast.FunctionDef, context: Context, name=None):
+        if name is None:
+            name = node.name
+        super().__init__(name)
         if node.args.vararg:
             raise InvalidOperation("Variable number args not permitted")
         if node.args.kwarg:
@@ -178,7 +180,7 @@ class MultiFunction(FunctionType):
 
     def get_implementation(self, func_name: str, impl: "FunctionImplementation", regenerate=False):
         text = self.get_signature(func_name, impl) + " {\n"
-        text += impl.get_variable_definitions()
+        text += indent(impl.get_variable_definitions(), " " * 4)
         if regenerate:
             impl.generate_code()
         text += impl.body

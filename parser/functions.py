@@ -5,6 +5,7 @@ import typed_ast.ast3 as ast
 from context import Context, Code
 from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation
 from itypes import TypeDB
+from itypes.classes import ClassInstance
 from itypes.functions import TypeSig
 from parser import get_expression_code
 
@@ -26,6 +27,13 @@ class FunctionImplementation(ast.NodeVisitor):
             self.args.append(code)
         self.generate_code()
 
+    def is_init(self):
+        if self.primary_node.name == "__init__":
+            first_arg = self.args[0]
+            if first_arg.code == "self" and isinstance(first_arg.tp, ClassInstance):
+                return True
+        return False
+
     # noinspection PyAttributeOutsideInit
     def generate_code(self):
         self.body = ""
@@ -34,6 +42,9 @@ class FunctionImplementation(ast.NodeVisitor):
         self.retval = Code(tp=None, code="_retval", is_pointer=True)
         self.all_paths_return = False
         self.context.clear_temp_vars()
+        # clear struct if class init
+        if self.is_init():
+            self.start_line(f"*self = ({self.args[0].tp.c_type}){{0}};\n")
         for n in self.primary_node.body:
             self.visit(n)
         if not self.all_paths_return:
@@ -123,9 +134,7 @@ class FunctionImplementation(ast.NodeVisitor):
         right = self.get_expression_code(node.value)
         for n in node.targets:
             if isinstance(n, ast.Name):
-                left = self.context.setdefault(n.id, Code(tp=right.tp, code=n.id))
-                if left.tp != right.tp:
-                    left.assign_type(right.tp)
+                left = self.context.assign_type(n.id, right.tp)
                 self.start_line("{} = {};\n".format(left.code, right.as_value()))
             elif isinstance(n, ast.Subscript):
                 value = self.get_expression_code(n.value)
@@ -138,6 +147,8 @@ class FunctionImplementation(ast.NodeVisitor):
                 else:
                     raise UnimplementedFeature("Slices not yet implemented")
             elif isinstance(n, ast.Attribute):
+                owner = self.get_expression_code(n.value)
+                owner.tp.set_attr(n.attr, right)
                 left = self.get_expression_code(n)
                 self.start_line(f"{left.code} = {right.code};\n")
 

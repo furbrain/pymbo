@@ -110,6 +110,9 @@ class InferredType(metaclass=ABCMeta):
             raise InvalidOperation(f"Get attr {attr} not valid for {self.name}")
         return self.attrs[attr]
 
+    def set_attr(self, attr: str, obj: Code):
+        raise InvalidOperation(f"Attribute setting not valid for {self.name}")
+
     def get_attr_code(self, attr: str, obj: Code) -> Code:
         raise InvalidOperation(f"Attribute access not valid for {self.name}")
 
@@ -120,17 +123,6 @@ class InferredType(metaclass=ABCMeta):
             self.functions.add(attr)
             return tp
         raise InvalidOperation(f"Attribute {attr} is not a method")
-
-    def set_attr(self, attr: str, tp: "InferredType"):
-        self.load_methods()
-        self.attrs[attr] = tp
-
-    def add_attr(self, attr: str, typeset: "InferredType"):
-        self.load_methods()
-        if attr in self.attrs:
-            self.attrs[attr] = self.attrs[attr].add_type(typeset)
-        else:
-            self.attrs[attr] = typeset
 
     def get_all_attrs(self):
         return self.attrs.copy()

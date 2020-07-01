@@ -14,7 +14,7 @@ from parser.expressions import get_constant_code
 # noinspection PyPep8Naming
 class ModuleParser(ast.NodeVisitor):
     def __init__(self):
-        self.context = Context()
+        self.context = Context(root=True)
         self.text = ""
         self.name = ""
         self.globals = []
@@ -67,8 +67,10 @@ class ModuleParser(ast.NodeVisitor):
         if include_type_funcs:
             for t in TypeDB.types.values():
                 code += t.get_definitions()
+            code += "\n"
             for t in TypeDB.types.values():
                 code += t.get_implementations()
+            code += "\n"
         return code
 
     def visit_FunctionDef(self, node: ast.FunctionDef):

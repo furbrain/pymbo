@@ -1,5 +1,3 @@
-import unittest
-
 from exceptions import InvalidOperation
 from tests.utils import PymboTest
 
@@ -33,7 +31,6 @@ class TestClass(PymboTest):
         """
         self.translate(code)
 
-    @unittest.skip
     def testClassInstanceCreate(self):
         code = """
         class A:

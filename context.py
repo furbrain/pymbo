@@ -68,19 +68,32 @@ class Code:
     def as_param(self):
         return f"{self.tp.fn_type()} {self.code}"
 
+
 class Context:
-    def __init__(self, parent: Optional["Context"] = None, fname="<string>"):
+    def __init__(self, parent: Optional["Context"] = None, fname="<string>", root=False):
         self.fname = fname
         self.parent = parent
         self.dct: Dict[str, Code] = {}
         self.temp_name_count = 1
-        if self.parent is None:
+        if root:
             self.load_builtins()
 
     def load_builtins(self):
         import py_functions
         for name, func_tp in py_functions.builtin_functions.items():
             self.dct[name] = Code(tp=func_tp)
+
+    def assign_type(self, name: str, tp: "InferredType", code=None):
+        if code is None:
+            code = name
+        if name in self:
+            code = self[name]
+            code.assign_type(tp)
+            return code
+        else:
+            code = Code(tp=tp, code=code)
+            self[name] = code
+            return code
 
     def __setitem__(self, key: str, value: Code):
         self.dct[key] = value

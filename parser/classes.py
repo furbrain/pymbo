@@ -4,7 +4,8 @@ import typed_ast.ast3 as ast
 
 from context import Context
 from exceptions import InvalidOperation, UnhandledNode
-from itypes.classes import ClassType
+from itypes.classes import ClassType, ClassInstance
+from itypes.functions import MultiFunction
 from parser.expressions import get_constant_code
 
 if TYPE_CHECKING:
@@ -16,6 +17,7 @@ class ClassParser(ast.NodeVisitor):
     def __init__(self, node: ast.ClassDef, module: "ModuleParser"):
         self.main_node = node
         self.cls = ClassType(node.name)
+        self.instance = ClassInstance(self.cls)
         self.module = module
         self.context = Context(module.context)
         if node.bases:
@@ -35,12 +37,13 @@ class ClassParser(ast.NodeVisitor):
         right = get_constant_code(node.value, self.module.context)
         for t in node.targets:
             if isinstance(t, ast.Name):
-                self.cls.add_class_var(t.id, right)
+                self.cls.set_attr(t.id, right)
             else:
                 raise InvalidOperation("Class variables must be simple names")
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        pass
+        tp = MultiFunction(node, self.context, name=f"{self.cls.name}__{node.name}")
+        self.cls.add_method(node.name, tp)
 
     def generic_visit(self, node):
         raise UnhandledNode(node)
