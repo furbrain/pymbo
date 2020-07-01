@@ -26,6 +26,9 @@ class ClassParser(ast.NodeVisitor):
             raise InvalidOperation("Keywords not allowed in class statement")
         for n in node.body:
             self.visit(n)
+        if "__init__" not in self.cls.methods:
+            func_node = ast.parse("def __init__(self):\n  pass")
+            self.visit(func_node.body[0])
 
     def get_type(self):
         return self.cls

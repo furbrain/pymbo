@@ -7,6 +7,10 @@ not bitwise operator for float
 and tests for the above obvsballs
 
 library imports need tidying - currently just missing stdio for print.
+maybe some code to cleanup temp return vals in assignments?
+implement priority tracking to ensure brackets only used when needed...
+
+
 
 some more list actions??
 list multiplication could be coool.... but would need to get temp variables up and running....

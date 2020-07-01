@@ -43,6 +43,18 @@ class TestClass(PymboTest):
         """
         self.translate(code)
 
+    def testClassInstanceAttrCreate(self):
+        code = """
+        class A:
+            pass
+
+        def main():
+            a = A()
+            a.b = True
+            return a.b
+        """
+        self.translate(code)
+
     def testInheritance_not_allowed(self):
         code = """
         class A(str):

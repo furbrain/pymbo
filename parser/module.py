@@ -81,7 +81,9 @@ class ModuleParser(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef):
         cls = ClassParser(node, self)
         self.context[node.name] = Code(tp=cls.get_type(), code=node.name)
-        TypeDB.add_type(cls.get_type())
+        tp = cls.get_type()
+        TypeDB.add_type(tp)
+        TypeDB.add_type(tp.instance)
 
     def visit_Module(self, node):
         super().generic_visit(node)
