@@ -50,6 +50,7 @@
         "len": {
             "args": "{self}",
             "retval": "int",
+            "priority": 1,
             "template": "{args[0].as_accessor()}len"
         }
     }

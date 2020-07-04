@@ -82,6 +82,8 @@ class InferredType(metaclass=ABCMeta):
                     dct[key] = dedent(eval(f'f"""{value}"""', {'self': self}))
             elif isinstance(value, dict):
                 self.render_template(value)
+            elif isinstance(value, int):
+                dct[key] = value
             else:
                 raise AttributeError(f"{type(value)} found in object spec!")
 

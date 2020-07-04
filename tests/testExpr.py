@@ -16,30 +16,40 @@ BASIC_TESTS = {
 }
 
 SIMPLE_OPS = {
-    "1+2": ("int", '(1 + 2)'),
-    "1+2.0": ("float", '(1 + 2.0)'),
-    "1.0+2": ("float", '(1.0 + 2)'),
-    "1 * 2": ("int", '(1 * 2)'),
-    "4 / 2": ("float", '((float) 4 / 2)'),
-    "5 - 3": ("int", '(5 - 3)'),
-    "7 % 3": ("int", '(7 % 3)'),
-    "3 << 2": ("int", '(3 << 2)'),
-    "7 >> 2": ("int", '(7 >> 2)'),
+    "1+2": ("int", '1 + 2'),
+    "1+2.0": ("float", '1 + 2.0'),
+    "1.0+2": ("float", '1.0 + 2'),
+    "1 * 2": ("int", '1 * 2'),
+    "4 / 2": ("float", '(float) 4 / 2'),
+    "5 - 3": ("int", '5 - 3'),
+    "7 % 3": ("int", '7 % 3'),
+    "3 << 2": ("int", '3 << 2'),
+    "7 >> 2": ("int", '7 >> 2'),
+}
+
+PRIORITY_CHECKS = {
+    "1+2*3": ("int", '1 + 2 * 3'),
+    "1*2*3": ("int", '1 * 2 * 3'),
+    "(1+2)*3": ("int", '(1 + 2) * 3'),
+    "(1*2)+3": ("int", '1 * 2 + 3'),
+    "1*(2+3)": ("int", '1 * (2 + 3)'),
+    "(12 // 2) // 2": ("int", "12 / 2 / 2"),
+    "12 // (2 // 2)": ("int", "12 / (2 / 2)")
 }
 
 IF_EXPR = {
     "3 if True else 5": ("int", "true ? 3 : 5"),
     "'fred' if False else 'george'": ("str:40", 'false ? (str__40){"fred"} : (str__40){"george"}'),
-    "2.3 if 3 < 10 else 5.7": ("float", '(3 < 10) ? 2.3 : 5.7')
+    "2.3 if 3 < 10 else 5.7": ("float", '3 < 10 ? 2.3 : 5.7')
 }
 
 COMP_TESTS = {
-    "1 < 2": ("bool", "(1 < 2)"),
-    "2 == 3": ("bool", "(2 == 3)"),
-    "1 <= 2": ("bool", "(1 <= 2)"),
-    "2 != 3": ("bool", "(2 != 3)"),
-    "1 > 2": ("bool", "(1 > 2)"),
-    "2 >= 3": ("bool", "(2 >= 3)"),
+    "1 < 2": ("bool", "1 < 2"),
+    "2 == 3": ("bool", "2 == 3"),
+    "1 <= 2": ("bool", "1 <= 2"),
+    "2 != 3": ("bool", "2 != 3"),
+    "1 > 2": ("bool", "1 > 2"),
+    "2 >= 3": ("bool", "2 >= 3"),
 }
 
 COMP_NOT_IMPLEMENTED = (
@@ -75,7 +85,7 @@ class TestExpressions(PymboTest):
                     m = ModuleParser()
                     results, _ = get_expression_code(code, m.context)
                     expected_result = str(eval(code)).lower()
-                    test_code = f"{pymbo.INCLUDES}\nint main(){{\n    return {results.code}=={expected_result};}}"
+                    test_code = f"{pymbo.INCLUDES}\nint main(){{\n    return ({results.code})=={expected_result};}}"
                     self.compile_and_run(test_code)
 
     def run_failing_tests(self, params, expected_exception):
@@ -90,15 +100,19 @@ class TestExpressions(PymboTest):
 
     def test_binops(self):
         self.run_passing_tests(SIMPLE_OPS)
-        self.compile_and_check_expressions(BASIC_TESTS)
+        self.compile_and_check_expressions(SIMPLE_OPS)
+
+    def test_priority(self):
+        self.run_passing_tests(PRIORITY_CHECKS)
+        self.compile_and_check_expressions(PRIORITY_CHECKS)
 
     def test_if_expr(self):
         self.run_passing_tests(IF_EXPR)
-        self.compile_and_check_expressions(BASIC_TESTS)
+        self.compile_and_check_expressions(IF_EXPR)
 
     def test_comp(self):
         self.run_passing_tests(COMP_TESTS)
-        self.compile_and_check_expressions(BASIC_TESTS)
+        self.compile_and_check_expressions(COMP_TESTS)
 
     def test_comp_fails(self):
         self.run_failing_tests(COMP_NOT_IMPLEMENTED, (StaticTypeError, UnimplementedFeature))

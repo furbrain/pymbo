@@ -10,12 +10,14 @@ class Code:
     def __init__(self,
                  tp: "Optional[InferredType]",
                  code="",
+                 priority=1,
                  is_pointer=False,
                  is_exported=False,
                  is_arg=False,
                  libraries=None,
                  prepends=None):
         self.tp = tp
+        self.priority = priority
         self.is_pointer = is_pointer
         self.is_exported = is_exported
         self.is_arg = is_arg
@@ -32,12 +34,17 @@ class Code:
     def as_pointer(self):
         if self.is_pointer:
             return self.code
+        elif self.priority == 1:
+            return f"&{self.code}"
         else:
             return f"&({self.code})"
 
     def as_value(self):
         if self.is_pointer:
-            return f"*({self.code})"
+            if self.priority == 1:
+                return f"*{self.code}"
+            else:
+                return f"*({self.code})"
         else:
             return self.code
 
@@ -60,10 +67,14 @@ class Code:
             return self.as_pointer()
 
     def as_accessor(self):
-        if self.is_pointer:
-            return f"({self.code})->"
+        if self.priority != 1:
+            code = f"({self.code})"
         else:
-            return f"({self.code})."
+            code = self.code
+        if self.is_pointer:
+            return f"{code}->"
+        else:
+            return f"{code}."
 
     def as_param(self):
         return f"{self.tp.fn_type()} {self.code}"

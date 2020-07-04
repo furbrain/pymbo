@@ -1,7 +1,7 @@
 import re
 from abc import ABCMeta, abstractmethod
 from textwrap import indent
-from typing import List, Dict, Sequence, TYPE_CHECKING
+from typing import List, Dict, Sequence, TYPE_CHECKING, Union
 
 import typed_ast.ast3 as ast
 
@@ -99,9 +99,11 @@ class InlineCMethod(FixedFunctionType):
                  name: str,
                  args: List[InferredType],
                  returns: InferredType,
+                 priority: int,
                  template: str):
         super().__init__(name, args, returns)
         self.template = template
+        self.priority = priority
         self.type = "NATIVE INLINE FUNCTION"
 
     def __str__(self):
@@ -109,16 +111,22 @@ class InlineCMethod(FixedFunctionType):
         return f"{self.name}({', '.join(args)}) -> ({self.retval})"
 
     @classmethod
-    def from_dict(cls, name: str, dct: Dict[str, str]):
+    def from_dict(cls, name: str, dct: Dict[str, Union[str, int]]):
         args, retval = cls.get_args_and_retval(dct)
-        method = cls(name, args, retval, dct['template'])
+        method = cls(name, args, retval, dct['priority'], dct['template'])
         return method
 
     def get_code(self, context, *args: Code) -> Code:
         self.check_code(args)
         # noinspection PyUnusedLocal
-        arg_strings = [arg.as_function_arg() for arg in args]
-        return Code(tp=self.retval, code=eval(f"f'{self.template}'"))
+        for i, arg in enumerate(args):
+            if i == 0:
+                if arg.priority > self.priority:
+                    arg.code = f"({arg.code})"
+            else:
+                if arg.priority >= self.priority:
+                    arg.code = f"({arg.code})"
+        return Code(tp=self.retval, code=eval(f"f'{self.template}'"), priority=self.priority)
 
 
 class PythonFunction(CMethod):
