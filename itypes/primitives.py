@@ -15,6 +15,16 @@ class IntType(InferredType):
         return False
 
 
+class FixedIntType(IntType):
+    def __init__(self, name: str):
+        super().__init__()
+        self.name = name
+        self.c_type = f"{name.lower()}_t"
+
+    def can_coerce_from(self, other: "InferredType") -> bool:
+        return isinstance(other, IntType)  # can only coerce to/from other int types
+
+
 class FloatType(InferredType):
     def __init__(self):
         super().__init__()

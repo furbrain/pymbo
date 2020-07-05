@@ -52,6 +52,12 @@
             "retval": "int",
             "priority": 1,
             "template": "{args[0].as_accessor()}len"
+        },
+        "clear": {
+            "args": "{self}",
+            "retval": "None",
+            "priority": 1,
+            "template": "{args[0].as_value()} = ({args[0].tp.c_type}){{0}}"
         }
     }
 }

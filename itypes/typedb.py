@@ -4,7 +4,7 @@ from exceptions import InvalidOperation
 from itypes import InferredType
 from itypes.lists import ListType
 from . import basics
-from .primitives import IntType, FloatType, BoolType, NoneType
+from .primitives import IntType, FloatType, BoolType, NoneType, FixedIntType
 from .strings import StrType
 
 
@@ -13,6 +13,11 @@ def get_builtins():
                                       'float': FloatType(),
                                       'bool': BoolType(),
                                       'None': NoneType()}
+    for i in (8, 16, 32, 64):
+        name = f"Int{i}"
+        types[name] = FixedIntType(name)
+        name = f"UInt{i}"
+        types[name] = FixedIntType(name)
     return types
 
 

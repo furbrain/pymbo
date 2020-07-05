@@ -3,11 +3,12 @@ from typing import Set
 import typed_ast.ast3 as ast
 
 from context import Context, Code
-from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation
+from exceptions import UnhandledNode, UnimplementedFeature, InvalidOperation, UnknownVariable, StaticTypeError
 from itypes import TypeDB
 from itypes.classes import ClassInstance
 from itypes.functions import TypeSig
-from parser import get_expression_code
+from itypes.lists import EmptyList
+from parser import get_expression_code, annotations
 
 
 # noinspection PyPep8Naming
@@ -133,24 +134,42 @@ class FunctionImplementation(ast.NodeVisitor):
     def visit_Assign(self, node: ast.Assign) -> None:
         right = self.get_expression_code(node.value)
         for n in node.targets:
-            if isinstance(n, ast.Name):
-                left = self.context.assign_type(n.id, right.tp)
-                self.start_line("{} = {};\n".format(left.code, right.as_value()))
-            elif isinstance(n, ast.Subscript):
-                value = self.get_expression_code(n.value)
-                slice_type = type(n.slice).__name__
-                if slice_type == "Index":
-                    index = self.get_expression_code(n.slice.value)
-                    setter = value.tp.get_method("set_item")
-                    code = setter.get_code(self.context, value, index, right)
-                    self.start_line(f"{code.code};\n")
-                else:
-                    raise UnimplementedFeature("Slices not yet implemented")
-            elif isinstance(n, ast.Attribute):
-                owner = self.get_expression_code(n.value)
-                owner.tp.set_attr(n.attr, right)
-                left = self.get_expression_code(n)
-                self.start_line(f"{left.code} = {right.code};\n")
+            self.assign_target(n, right)
+
+    def assign_target(self, node, value):
+        if isinstance(value.tp, EmptyList):
+            func_node = ast.Expr(value=ast.Call(func=ast.Attribute(value=node,
+                                                                   attr="clear"),
+                                                args=[]))
+            try:
+                self.visit(func_node)
+            except UnknownVariable:
+                raise StaticTypeError("Must specify a list type when assigning an empty list")
+            return
+        if isinstance(node, ast.Name):
+            left = self.context.assign_type(node.id, value.tp)
+            self.start_line("{} = {};\n".format(left.code, value.as_value()))
+        elif isinstance(node, ast.Subscript):
+            container = self.get_expression_code(node.value)
+            if isinstance(node.slice, ast.Index):
+                index = self.get_expression_code(node.slice.value)
+                setter = container.tp.get_method("set_item")
+                code = setter.get_code(self.context, container, index, value)
+                self.start_line(f"{code.code};\n")
+            else:
+                raise UnimplementedFeature("Slices not yet implemented")
+        elif isinstance(node, ast.Attribute):
+            owner = self.get_expression_code(node.value)
+            owner.tp.set_attr(node.attr, value)
+            left = self.get_expression_code(node)
+            self.start_line(f"{left.code} = {value.code};\n")
+
+    def visit_AnnAssign(self, node: ast.AnnAssign):
+        if isinstance(node.target, ast.Name):
+            self.context.assign_type(node.target.id, annotations.get_type(node.annotation))
+        if node.value is not None:
+            value = self.get_expression_code(node.value)
+            self.assign_target(node.target, value)
 
     def visit_Try(self, node: ast.Try):
         if node.orelse:

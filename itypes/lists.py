@@ -1,5 +1,5 @@
 import functools
-import typing
+from typing import Union, List
 
 from itypes import InferredType, combine_types
 
@@ -22,6 +22,21 @@ class ListType(InferredType):
         return f"({self.c_type}){{{len(values)}, {{{', '.join(values)}}}}}"
 
     @classmethod
-    def from_elements(cls, types: typing.List[InferredType], maxlen: int) -> "ListType":
-        tp = functools.reduce(combine_types, types)
+    def from_elements(cls, types: List[InferredType], maxlen: int) -> Union["ListType", "EmptyList"]:
+        if len(types) == 0:
+            return EmptyList()
+        if len(types) == 1:
+            tp = types[0]
+        else:
+            tp = functools.reduce(combine_types, types)
         return cls(tp, maxlen)
+
+
+class EmptyList(InferredType):
+    def __init__(self):
+        super().__init__()
+        self.name = "Empty List"
+
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def as_literal(self, vals):
+        return "{0}"
